@@ -150,7 +150,13 @@ async function handleApi(req,res,url){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
   const q=await pool.query("SELECT id,kind,amount,description,reference,created_at FROM wallet_transactions WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100",[user.id]);return json(res,200,{balance:Number(user.wallet_balance),transactions:q.rows});
  }
- if(req.method==="GET"&&url.pathname==="/api/admin/overview"){
+ if(req.method==="GET"&&url.pathname==="/api/admin/users"){
+   const q=await pool.query("SELECT id,email,phone,role,wallet_balance,created_at FROM users ORDER BY created_at DESC LIMIT 200");return json(res,200,{users:q.rows});
+  }
+  if(req.method==="GET"&&url.pathname==="/api/admin/orders"){
+   const q=await pool.query("SELECT o.id,o.phone_number,o.status,o.sale_price,o.created_at,u.email,u.phone FROM number_orders o JOIN users u ON u.id=o.user_id ORDER BY o.created_at DESC LIMIT 200");return json(res,200,{orders:q.rows});
+  }
+  if(req.method==="GET"&&url.pathname==="/api/admin/overview"){
   const [u,o,w]=await Promise.all([pool.query("SELECT count(*)::int n FROM users WHERE role='customer'"),pool.query("SELECT count(*)::int n FROM number_orders"),pool.query("SELECT coalesce(sum(sale_price),0)::numeric total FROM number_orders WHERE status='done'")]);return json(res,200,{customers:u.rows[0].n,orders:o.rows[0].n,sales:Number(w.rows[0].total)});
  }
  if(req.method==="POST"&&url.pathname==="/api/admin/markup"){
