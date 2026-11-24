@@ -184,7 +184,7 @@ async function handleApi(req,res,url){
    await client.query("COMMIT");
   }catch(e){try{await client.query("ROLLBACK");}catch{}throw e;}finally{client.release();}
   let bought;
-  try{bought=await heroRequest("POST","/activations",{service,country:Number(country),amount:1,verificationType:"sms",maxPrice:cost});}
+  try{bought=await heroRequest("POST","/activations",{service,country:Number(country),amount:1,verificationType:"sms",maxPrice:sale});}
   catch(e){
    // Provider errors are definitive only when a normal HTTP response was received.
    if(e.providerStatus && e.providerStatus>=400 && e.providerStatus<500){const cx=await pool.connect();try{await cx.query("BEGIN");await cx.query("UPDATE herosms_orders SET status='refunded',updated_at=now() WHERE id=$1",[localId]);await cx.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[sale,user.id]);await cx.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد طلب فاشل من سيرفر رقم اثنين',$3)",[user.id,sale,"herosms:"+localId]);await cx.query("COMMIT");}catch(x){await cx.query("ROLLBACK");throw x;}finally{cx.release();}return json(res,502,{error:heroErrorMessage(e)});}
