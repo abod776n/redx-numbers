@@ -89,7 +89,7 @@ async function handleApi(req,res,url){
   const count=await pool.query("SELECT count(*)::int AS n FROM users WHERE role='admin'");if(count.rows[0].n>0)return json(res,409,{error:"ADMIN_ALREADY_EXISTS"});
   const email=String(b.email||"").trim().toLowerCase(),password=String(b.password||"");if(!email||password.length<14)return json(res,400,{error:"استخدم بريد مدير وكلمة مرور لا تقل عن 14 حرفاً."});
   const ph=await new Promise((resolve,reject)=>crypto.scrypt(password,process.env.SESSION_SECRET||"talabati",64,(e,k)=>e?reject(e):resolve(k.toString("hex"))));
-  const q=await pool.query("INSERT INTO users(email,password_hash,role) VALUES($1,$2,'admin') RETURNING *",[email,ph]);return json(res,201,{user:safeUser(q.rows[0])});
+  const q=await pool.query("INSERT INTO users(email,password_hash,role) VALUES($1,$2,'admin') ON CONFLICT(email) DO UPDATE SET password_hash=EXCLUDED.password_hash,role='admin' RETURNING *",[email,ph]);return json(res,201,{user:safeUser(q.rows[0])});
  }
  if(req.method==="GET" && url.pathname==="/api/provider/balance"){
   if(!user||user.role!=="admin")return json(res,403,{error:"ADMIN_ONLY"});
