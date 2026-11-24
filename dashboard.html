@@ -184,102 +184,38 @@
 .number-modal-help{font-size:9px;color:#8295b0;line-height:1.9;margin-top:15px}
 @media(max-width:480px){.number-modal{padding:10px}.number-modal-card{padding:28px 16px 18px;border-radius:20px}.number-modal-card h2{font-size:19px}.number-modal-code strong{font-size:26px}}
 </style>
-<script src="/dashboard.js"></script><script src="/recharge.js"></script>
+<style>
+.provider-switch{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:0 0 14px;padding:5px;border:1px solid #ffffff17;border-radius:14px;background:#081323}
+.provider-tab{min-height:43px;border:1px solid transparent;border-radius:10px;background:transparent;color:#aab7cc;font:inherit;font-size:10px;font-weight:700;cursor:pointer}
+.provider-tab.active{border-color:#8b7cff77;background:linear-gradient(120deg,#7867f533,#328ec522);color:#fff}
+.hero-vpn-note{margin:16px 0;padding:15px;border:1px solid #d5aa4c44;border-radius:13px;background:#d5aa4c0d;color:#dce5f4;font-size:10px;line-height:2}
+.hero-vpn-note b{color:#f0d27d}.hero-vpn-note ol{margin:8px 0;padding-right:20px}.hero-vpn-note small{color:#aebbd0}
+#herosms-panel[hidden],#main-provider-panel[hidden]{display:none!important}
+.customer-page-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0 22px;padding:6px;border:1px solid #ffffff12;border-radius:16px;background:#081323}
+.customer-page-tab{min-height:48px;border:1px solid transparent;border-radius:12px;background:transparent;color:#9eacc2;font:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:.2s}
+.customer-page-tab.active{color:#f5f3ff;border-color:#8b7cff77;background:linear-gradient(120deg,#7867f533,#328ec522);box-shadow:0 5px 18px #0002}
+.customer-page-view[hidden]{display:none!important}
+.customer-back-btn{display:inline-flex;align-items:center;gap:8px;margin:0 0 16px;padding:11px 15px;border:1px solid #8b7cff55;border-radius:12px;background:#8b7cff14;color:#d4ceff;font:inherit;font-size:11px;cursor:pointer}
+#customer-recharge-view .payment-history{margin-top:18px}
+@media(max-width:600px){#jeeb-topup .binance-topup-row{grid-template-columns:1fr}}
+@media(max-width:480px){.customer-page-nav{gap:7px;margin:16px 0}.customer-page-tab{font-size:10px;min-height:45px}}
+</style>
+<script src="/dashboard.js"></script>
+<script src="/recharge.js"></script>
+<script src="/hero.js"></script>
 <script>
 (function(){
- const $=id=>document.getElementById(id);let service="wa",offers=[],active=null;
- async function req(url,opts={}){const r=await fetch(url,{...opts,headers:{"Content-Type":"application/json",...(opts.headers||{})}});let d={};try{d=await r.json()}catch{}if(!r.ok)throw new Error(d.message||d.error||"تعذر تنفيذ الطلب");return d;}
- function showProvider(which){const hero=which==="hero";$("main-provider-panel").hidden=hero;$("herosms-panel").hidden=!hero;document.querySelectorAll("[data-provider-tab]").forEach(b=>b.classList.toggle("active",b.dataset.providerTab===which));if(hero)loadOffers();}
- document.querySelectorAll("[data-provider-tab]").forEach(b=>b.addEventListener("click",()=>showProvider(b.dataset.providerTab)));
- document.querySelectorAll("[data-hero-service]").forEach(b=>b.addEventListener("click",()=>{service=b.dataset.heroService;document.querySelectorAll("[data-hero-service]").forEach(x=>x.classList.toggle("selected",x===b));loadOffers();}));
- async function loadOffers(){const sel=$("hero-country");sel.innerHTML='<option value="">جارٍ تحميل العروض...</option>';$("hero-price").textContent="يتم جلب الأسعار والتوفر من HEROSMS...";try{const d=await req("/api/herosms/offers?service="+encodeURIComponent(service));offers=d.offers||[];sel.innerHTML=offers.length?offers.map(x=>'<option value="'+x.country_code+'">'+x.country_name+' — <script>(function(){
-const tabs=[...document.querySelectorAll("[data-customer-page]")];
-const buy=document.getElementById("customer-buy-view"),recharge=document.getElementById("customer-recharge-view");
-function show(page){const isRecharge=page==="recharge";buy.hidden=isRecharge;recharge.hidden=!isRecharge;document.querySelectorAll(".customer-page-tab").forEach(b=>b.classList.toggle("active",b.dataset.customerPage===page));window.scrollTo({top:0,behavior:"smooth"});}
-tabs.forEach(b=>b.addEventListener("click",()=>show(b.dataset.customerPage)));
+  const tabs=[...document.querySelectorAll("[data-customer-page]")];
+  const buy=document.getElementById("customer-buy-view");
+  const recharge=document.getElementById("customer-recharge-view");
+  function show(page){
+    const isRecharge=page==="recharge";
+    buy.hidden=isRecharge;
+    recharge.hidden=!isRecharge;
+    document.querySelectorAll(".customer-page-tab").forEach(button=>button.classList.toggle("active",button.dataset.customerPage===page));
+    window.scrollTo({top:0,behavior:"smooth"});
+  }
+  tabs.forEach(button=>button.addEventListener("click",()=>show(button.dataset.customerPage)));
 })();
 </script>
-<style>
-.country-sort{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px}
-.country-sort>span{font-size:9px;color:#91a3bd;margin-left:auto}
-.country-sort-btn{border:1px solid #34435e;border-radius:10px;padding:8px 10px;background:#0a1525;color:#aebbd0;font:inherit;font-size:9px;cursor:pointer}
-.country-sort-btn.active{border-color:#8b7cff;background:#8b7cff20;color:#ded6ff;box-shadow:0 0 0 2px #8b7cff12}
-</style><style>
-.customer-page-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0 22px;padding:6px;border:1px solid #ffffff12;border-radius:16px;background:#081323}
-.customer-page-tab{min-height:48px;border:1px solid transparent;border-radius:12px;background:transparent;color:#9eacc2;font:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:.2s}
-.customer-page-tab.active{color:#f5f3ff;border-color:#8b7cff77;background:linear-gradient(120deg,#7867f533,#328ec522);box-shadow:0 5px 18px #0002}
-.customer-page-view[hidden]{display:none!important}
-.customer-back-btn{display:inline-flex;align-items:center;gap:8px;margin:0 0 16px;padding:11px 15px;border:1px solid #8b7cff55;border-radius:12px;background:#8b7cff14;color:#d4ceff;font:inherit;font-size:11px;cursor:pointer}
-#customer-recharge-view .payment-history{margin-top:18px}
-@media(max-width:480px){.customer-page-nav{gap:7px;margin:16px 0}.customer-page-tab{font-size:10px;min-height:45px}}
-</style></body></html>+Number(x.price).toFixed(4)+' — متاح '+x.qty+'</option>').join(""):'<option value="">لا توجد دول متاحة حالياً</option>';showOfferPrice();}catch(e){sel.innerHTML='<option value="">تعذر تحميل الدول</option>';$("hero-price").textContent=e.message;}}
- function selected(){return offers.find(x=>x.country_code===$("hero-country").value);}
- function showOfferPrice(){const o=selected();$("hero-price").textContent=o?'السعر النهائي: <script>(function(){
-const tabs=[...document.querySelectorAll("[data-customer-page]")];
-const buy=document.getElementById("customer-buy-view"),recharge=document.getElementById("customer-recharge-view");
-function show(page){const isRecharge=page==="recharge";buy.hidden=isRecharge;recharge.hidden=!isRecharge;document.querySelectorAll(".customer-page-tab").forEach(b=>b.classList.toggle("active",b.dataset.customerPage===page));window.scrollTo({top:0,behavior:"smooth"});}
-tabs.forEach(b=>b.addEventListener("click",()=>show(b.dataset.customerPage)));
-})();
-</script>
-<style>
-.country-sort{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px}
-.country-sort>span{font-size:9px;color:#91a3bd;margin-left:auto}
-.country-sort-btn{border:1px solid #34435e;border-radius:10px;padding:8px 10px;background:#0a1525;color:#aebbd0;font:inherit;font-size:9px;cursor:pointer}
-.country-sort-btn.active{border-color:#8b7cff;background:#8b7cff20;color:#ded6ff;box-shadow:0 0 0 2px #8b7cff12}
-</style><style>
-.customer-page-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0 22px;padding:6px;border:1px solid #ffffff12;border-radius:16px;background:#081323}
-.customer-page-tab{min-height:48px;border:1px solid transparent;border-radius:12px;background:transparent;color:#9eacc2;font:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:.2s}
-.customer-page-tab.active{color:#f5f3ff;border-color:#8b7cff77;background:linear-gradient(120deg,#7867f533,#328ec522);box-shadow:0 5px 18px #0002}
-.customer-page-view[hidden]{display:none!important}
-.customer-back-btn{display:inline-flex;align-items:center;gap:8px;margin:0 0 16px;padding:11px 15px;border:1px solid #8b7cff55;border-radius:12px;background:#8b7cff14;color:#d4ceff;font:inherit;font-size:11px;cursor:pointer}
-#customer-recharge-view .payment-history{margin-top:18px}
-@media(max-width:480px){.customer-page-nav{gap:7px;margin:16px 0}.customer-page-tab{font-size:10px;min-height:45px}}
-</style></body></html>+Number(o.price).toFixed(4)+' · المتاح: '+o.qty+' رقم':'لا توجد عروض لهذه الخدمة حالياً.';}
- $("hero-country").addEventListener("change",showOfferPrice);
- async function loadHeroOrders(){try{const d=await req("/api/herosms/orders");const rows=d.orders||[];$("hero-orders").innerHTML=rows.length?rows.map(o=>'<div class="order"><b>'+String(o.phone_number||"الرقم قيد التجهيز").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))+'</b> · '+o.service+' · '+({waiting:"بانتظار الكود",done:"تم استلام الكود",refunded:"ملغي / مسترد",uncertain:"قيد المراجعة",finished:"مكتمل",processing:"قيد التنفيذ"}[o.status]||o.status)+' · <script>(function(){
-const tabs=[...document.querySelectorAll("[data-customer-page]")];
-const buy=document.getElementById("customer-buy-view"),recharge=document.getElementById("customer-recharge-view");
-function show(page){const isRecharge=page==="recharge";buy.hidden=isRecharge;recharge.hidden=!isRecharge;document.querySelectorAll(".customer-page-tab").forEach(b=>b.classList.toggle("active",b.dataset.customerPage===page));window.scrollTo({top:0,behavior:"smooth"});}
-tabs.forEach(b=>b.addEventListener("click",()=>show(b.dataset.customerPage)));
-})();
-</script>
-<style>
-.country-sort{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px}
-.country-sort>span{font-size:9px;color:#91a3bd;margin-left:auto}
-.country-sort-btn{border:1px solid #34435e;border-radius:10px;padding:8px 10px;background:#0a1525;color:#aebbd0;font:inherit;font-size:9px;cursor:pointer}
-.country-sort-btn.active{border-color:#8b7cff;background:#8b7cff20;color:#ded6ff;box-shadow:0 0 0 2px #8b7cff12}
-</style><style>
-.customer-page-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0 22px;padding:6px;border:1px solid #ffffff12;border-radius:16px;background:#081323}
-.customer-page-tab{min-height:48px;border:1px solid transparent;border-radius:12px;background:transparent;color:#9eacc2;font:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:.2s}
-.customer-page-tab.active{color:#f5f3ff;border-color:#8b7cff77;background:linear-gradient(120deg,#7867f533,#328ec522);box-shadow:0 5px 18px #0002}
-.customer-page-view[hidden]{display:none!important}
-.customer-back-btn{display:inline-flex;align-items:center;gap:8px;margin:0 0 16px;padding:11px 15px;border:1px solid #8b7cff55;border-radius:12px;background:#8b7cff14;color:#d4ceff;font:inherit;font-size:11px;cursor:pointer}
-#customer-recharge-view .payment-history{margin-top:18px}
-@media(max-width:480px){.customer-page-nav{gap:7px;margin:16px 0}.customer-page-tab{font-size:10px;min-height:45px}}
-</style></body></html>+Number(o.sale_price).toFixed(4)+(o.code?'<p>الكود: <b>'+o.code+'</b></p>':'')+(o.status==="waiting"?'<button class="action" data-hero-code="'+o.id+'">فحص الكود</button> <button class="action cancel-order" data-hero-cancel="'+o.id+'">إلغاء واسترداد</button>':'')+'</div>').join(""):"لا توجد طلبات من السيرفر الثاني بعد.";}catch(e){$("hero-orders").textContent=e.message;if(e.message==="UNAUTHORIZED")location.href="/login.html";}}
- $("hero-buy").addEventListener("click",async()=>{const o=selected();if(!o)return;const b=$("hero-buy");b.disabled=true;b.textContent="جارٍ حجز الرقم من HEROSMS...";$("hero-message").textContent="";try{const d=await req("/api/herosms/orders",{method:"POST",body:JSON.stringify({service,country_code:o.country_code})});if(d.status==="ok"){$("hero-message").textContent="تم حجز الرقم: "+d.number+" — تابع طلبك أدناه لاستلام الرمز.";}else $("hero-message").textContent=d.message||"الطلب قيد المراجعة. لا تكرر الشراء.";await loadHeroOrders();if(window.load)await window.load();}catch(e){$("hero-message").textContent=e.message;}finally{b.disabled=false;b.innerHTML='شراء من سيرفر رقم اثنين <span>←</span>'; }});
- $("hero-orders").addEventListener("click",async e=>{const code=e.target.dataset.heroCode,cancel=e.target.dataset.heroCancel;const id=code||cancel;if(!id)return;try{if(code){const d=await req("/api/herosms/orders/"+id+"/code");$("hero-message").textContent=d.code?"رمز التفعيل: "+d.code:(d.message||"لم يصل الرمز بعد.");}else{if(!confirm("هل تريد إلغاء الرقم؟ سيُعاد الرصيد فقط بعد تأكيد HEROSMS الإلغاء."))return;await req("/api/herosms/orders/"+id+"/cancel",{method:"POST",body:"{}"});$("hero-message").textContent="تم إلغاء الطلب واسترداد الرصيد.";}await loadHeroOrders();}catch(x){$("hero-message").textContent=x.message;}});
- const oldLoad=window.load;loadHeroOrders();
-})();
-</script>
-<script>(function(){
-const tabs=[...document.querySelectorAll("[data-customer-page]")];
-const buy=document.getElementById("customer-buy-view"),recharge=document.getElementById("customer-recharge-view");
-function show(page){const isRecharge=page==="recharge";buy.hidden=isRecharge;recharge.hidden=!isRecharge;document.querySelectorAll(".customer-page-tab").forEach(b=>b.classList.toggle("active",b.dataset.customerPage===page));window.scrollTo({top:0,behavior:"smooth"});}
-tabs.forEach(b=>b.addEventListener("click",()=>show(b.dataset.customerPage)));
-})();
-</script>
-<style>
-.country-sort{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px}
-.country-sort>span{font-size:9px;color:#91a3bd;margin-left:auto}
-.country-sort-btn{border:1px solid #34435e;border-radius:10px;padding:8px 10px;background:#0a1525;color:#aebbd0;font:inherit;font-size:9px;cursor:pointer}
-.country-sort-btn.active{border-color:#8b7cff;background:#8b7cff20;color:#ded6ff;box-shadow:0 0 0 2px #8b7cff12}
-</style><style>
-.customer-page-nav{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:20px 0 22px;padding:6px;border:1px solid #ffffff12;border-radius:16px;background:#081323}
-.customer-page-tab{min-height:48px;border:1px solid transparent;border-radius:12px;background:transparent;color:#9eacc2;font:inherit;font-size:11px;font-weight:700;cursor:pointer;transition:.2s}
-.customer-page-tab.active{color:#f5f3ff;border-color:#8b7cff77;background:linear-gradient(120deg,#7867f533,#328ec522);box-shadow:0 5px 18px #0002}
-.customer-page-view[hidden]{display:none!important}
-.customer-back-btn{display:inline-flex;align-items:center;gap:8px;margin:0 0 16px;padding:11px 15px;border:1px solid #8b7cff55;border-radius:12px;background:#8b7cff14;color:#d4ceff;font:inherit;font-size:11px;cursor:pointer}
-#customer-recharge-view .payment-history{margin-top:18px}
-@media(max-width:480px){.customer-page-nav{gap:7px;margin:16px 0}.customer-page-tab{font-size:10px;min-height:45px}}
-</style></body></html>
+</body></html>
