@@ -1,4 +1,82 @@
-<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>إدارة طلباتي نمبر</title><link rel="stylesheet" href="/style.css"><style>body{background:#090d19;color:#eef2ff;font-family:Arial,sans-serif}.wrap{max-width:1100px;margin:30px auto;padding:16px}.panel{background:#141c30;border:1px solid #2b3650;border-radius:14px;padding:18px;margin:14px 0}.row{display:flex;gap:10px;flex-wrap:wrap}.row input{padding:10px;border-radius:8px;border:1px solid #46516a;background:#0b1222;color:#fff}.btn{background:#7358ed;color:white;border:0;padding:11px 18px;border-radius:9px;cursor:pointer}.item{padding:10px;border-bottom:1px solid #303a51}.muted{color:#aab6cf}</style></head><body><main class="wrap"><header class="row" style="justify-content:space-between;align-items:center"><h1>لوحة إدارة طلباتي نمبر</h1><a href="/">زيارة الموقع ↗</a></header><p id="notice" class="muted">التحقق من صلاحيات المدير...</p><section class="panel"><h2>ملخص المنصة</h2><div class="row"><div>العملاء: <b id="customers">—</b></div><div>الطلبات: <b id="orders-count">—</b></div><div>المبيعات المكتملة: <b id="sales">—</b></div><div>رصيد المزوّد: <b id="provider">—</b></div></div></section><section class="panel"><h2>هامش الربح</h2><div class="row"><input id="markup" type="text" inputmode="decimal" autocomplete="off" value="10" aria-label="نسبة هامش الربح من صفر إلى خمسين"><button class="btn" id="save-markup">حفظ النسبة %</button></div></section><section class="panel"><h2>شحن محفظة عميل (يدوي)</h2><div class="row"><input id="customer-email" type="email" autocomplete="email" placeholder="البريد الإلكتروني للعميل"><input id="amount" type="number" min="0.01" step="0.01" placeholder="المبلغ بالدولار"><button class="btn" id="credit">إضافة الرصيد</button></div><small class="muted">لا تستخدم هذه العملية إلا بعد التحقق من استلام المبلغ فعلياً.</small></section>
-<section class="panel"><h2>بيانات استقبال الحوالات</h2><p class="muted">أدخل بيانات حساباتك وتعليمات الدفع التي ستظهر للعميل قبل التحويل.</p><div class="row"><label>فلوسك<br><input id="method-fulusak" placeholder="رقم المحفظة واسم المستفيد"></label><label>جيب<br><input id="method-jeeb" placeholder="رقم المحفظة واسم المستفيد"></label><label>ون كاش<br><input id="method-onecash" placeholder="رقم المحفظة واسم المستفيد"></label><label>كاش<br><input id="method-cash" placeholder="رقم المحفظة واسم المستفيد"></label><label>Binance / USDT<br><input id="method-binance" placeholder="شبكة الإيداع والعنوان أو Pay ID"></label><button class="btn" id="save-methods">حفظ بيانات الدفع</button></div></section>
-<section class="panel"><h2>طلبات الدفع اليدوية</h2><p class="muted">راجع رقم العملية والإيصال قبل قبول الطلب. القبول يضيف الرصيد بالدولار تلقائياً.</p><div id="payment-review">جارٍ تحميل الطلبات...</div></section>
-<section class="panel"><h2>العملاء</h2><div id="users">—</div></section><section class="panel"><h2>آخر الطلبات</h2><div id="orders">—</div></section><button class="btn" id="logout">تسجيل الخروج</button></main><script src="/admin.js"></script></body></html>
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>لوحة التحكم | طلباتي نمبر</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#080d19;--surface:#101a2b;--surface2:#142239;--line:#24344e;--text:#edf4ff;--muted:#91a2bd;--purple:#8b7cff;--cyan:#42d5d0;--green:#39d6a0;--red:#ff7185;--shadow:0 18px 55px #02071180}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:25px}body{margin:0;background:radial-gradient(ellipse at 75% -15%,#28376b66,transparent 38%),var(--bg);color:var(--text);font-family:'Alexandria',Arial,sans-serif;min-height:100vh}a{color:inherit;text-decoration:none}button,input{font:inherit}
+.admin-shell{max-width:1500px;margin:auto;display:grid;grid-template-columns:255px minmax(0,1fr);min-height:100vh}
+.sidebar{position:sticky;top:0;height:100vh;padding:28px 18px;background:#0b1424eF;border-left:1px solid var(--line);display:flex;flex-direction:column;z-index:5}
+.brand{display:flex;align-items:center;gap:12px;padding:4px 10px 28px;border-bottom:1px solid var(--line)}
+.brand-mark{width:45px;height:45px;border-radius:15px;display:grid;place-items:center;background:linear-gradient(145deg,#9b8cff,#4b67c9);font-size:22px;box-shadow:0 9px 30px #7669ff55}
+.brand b{display:block;font-size:15px}.brand small{display:block;color:#8495b2;font-size:9px;letter-spacing:1.3px;margin-top:5px}
+.side-label{font-size:9px;color:#627592;font-weight:700;padding:25px 13px 10px}
+.side-nav{display:grid;gap:6px}.side-nav a{display:flex;align-items:center;gap:12px;padding:12px 13px;border-radius:12px;color:#9eacc3;font-size:11px;transition:.2s}.side-nav a:hover,.side-nav a.active{background:linear-gradient(100deg,#786bff26,#43c8d00d);color:#fff;border:1px solid #8277ff2e}.side-nav i{font-style:normal;font-size:16px;width:22px;text-align:center}
+.side-bottom{margin-top:auto;display:grid;gap:10px}.side-bottom a,.side-bottom button{border:1px solid var(--line);background:#111d30;color:#b8c6dc;border-radius:12px;padding:12px;text-align:center;font-size:10px;cursor:pointer}
+.main{padding:30px clamp(16px,3vw,42px) 55px;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:30px}.topbar h1{font-size:23px;margin:0;font-weight:800}.topbar p{font-size:10px;color:var(--muted);margin:8px 0 0}.top-actions{display:flex;align-items:center;gap:10px}.admin-chip{display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:#101a2b;padding:8px 13px;border-radius:14px;font-size:10px;color:#b9c8de}.admin-avatar{width:30px;height:30px;border-radius:10px;background:#6558cb;display:grid;place-items:center}
+.notice{border:1px solid #344667;background:#17253b;color:#b7c9e2;padding:12px 16px;border-radius:13px;font-size:10px;margin-bottom:20px;line-height:1.9}
+.section-title{display:flex;align-items:end;justify-content:space-between;gap:10px;margin:30px 0 14px}.section-title h2{font-size:15px;margin:0}.section-title p{font-size:9px;color:var(--muted);margin:6px 0 0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.stat{position:relative;overflow:hidden;padding:19px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,#14223a,#0e192a);box-shadow:var(--shadow);min-height:120px}
+.stat:after{content:"";position:absolute;width:100px;height:100px;border-radius:50%;background:var(--glow,#796cff);filter:blur(60px);opacity:.2;left:-20px;top:-25px}
+.stat-top{display:flex;align-items:center;justify-content:space-between;color:#9aacc5;font-size:10px}.stat-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;background:#ffffff0d;font-size:16px}.stat strong{display:block;font-size:25px;margin-top:14px;letter-spacing:.2px}.stat small{display:block;color:#8294af;font-size:9px;margin-top:4px}
+.panel{background:linear-gradient(145deg,#121f33,#0e192a);border:1px solid var(--line);border-radius:18px;padding:21px;margin-top:14px;box-shadow:var(--shadow);min-width:0}
+.panel h2{font-size:14px;margin:0 0 8px}.muted{color:var(--muted);font-size:10px;line-height:1.9;margin:0 0 17px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.row input,.panel input{width:min(100%,300px);min-height:43px;padding:11px 13px;border-radius:11px;border:1px solid #30435f;background:#091424;color:#fff;outline:none;font-size:11px;transition:.2s}.row input:focus,.panel input:focus{border-color:#8b7cff;box-shadow:0 0 0 3px #8b7cff20}.panel label{display:grid;gap:7px;color:#a9bad2;font-size:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:43px;padding:11px 17px;border:0;border-radius:11px;background:linear-gradient(110deg,#8978ff,#5d70d7);box-shadow:0 8px 24px #7668ff35;color:#fff;cursor:pointer;font-size:10px;font-weight:700;transition:.2s}.btn:hover{transform:translateY(-2px);filter:brightness(1.08)}.btn:disabled{opacity:.6;cursor:wait;transform:none}
+.payment-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:end}.payment-fields label input{width:100%}
+.item{padding:14px 15px;margin:8px 0;border:1px solid #263955;border-radius:13px;background:#0c1728;color:#c5d2e5;font-size:10px;line-height:2.1;overflow-wrap:anywhere}
+#payment-review .item{border-right:3px solid #887aff}
+#users,#orders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}#users .item,#orders .item{margin:0}
+#payment-review .btn{min-height:36px;padding:8px 12px}#payment-review a{color:#79d9ee;text-decoration:underline}
+.logout{background:#3a1c2a!important;border-color:#71374a!important;color:#ffb5c0!important}
+.footer-note{text-align:center;color:#64758f;font-size:9px;padding:35px 0 0}
+@media(max-width:1000px){.admin-shell{grid-template-columns:210px minmax(0,1fr)}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.payment-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.admin-shell{display:block}.sidebar{position:relative;height:auto;padding:14px 16px;border-left:0;border-bottom:1px solid var(--line)}.brand{padding:0 2px 13px;border:0}.side-label{display:none}.side-nav{display:flex;overflow:auto;gap:6px;padding-top:12px}.side-nav a{white-space:nowrap;padding:9px 11px;font-size:9px}.side-nav i{font-size:13px}.side-bottom{display:none}.main{padding:22px 14px 40px}.topbar{align-items:flex-start}.topbar h1{font-size:18px}.admin-chip{font-size:0;padding:6px}.admin-avatar{font-size:13px}.stats{gap:9px}.stat{padding:14px;min-height:105px}.stat strong{font-size:21px}.panel{padding:16px}.payment-fields{grid-template-columns:1fr}.row input{width:100%;flex:1 1 100%}.row .btn{width:100%}#users,#orders{grid-template-columns:1fr}}
+</style></head>
+<body><div class="admin-shell">
+<aside class="sidebar">
+ <div class="brand"><div class="brand-mark">✦</div><div><b>طلباتي نمبر</b><small>CONTROL CENTER</small></div></div>
+ <div class="side-label">القائمة الرئيسية</div>
+ <nav class="side-nav">
+  <a class="active" href="#overview"><i>▦</i>نظرة عامة</a>
+  <a href="#wallet"><i>◈</i>شحن العملاء</a>
+  <a href="#payments"><i>⇄</i>وسائل الدفع</a>
+  <a href="#reviews"><i>✓</i>مراجعة الحوالات</a>
+  <a href="#customers"><i>♙</i>العملاء</a>
+  <a href="#orders-section"><i>▤</i>الطلبات</a>
+ </nav>
+ <div class="side-bottom"><a href="/" target="_blank">↗ فتح المتجر</a><button class="logout" id="logout">تسجيل الخروج</button></div>
+</aside>
+<main class="main">
+ <header class="topbar"><div><h1>لوحة التحكم</h1><p>إدارة منصة طلباتي نمبر ومتابعة العمليات من مكان واحد.</p></div><div class="top-actions"><div class="admin-chip"><span class="admin-avatar">♙</span>مدير النظام</div></div></header>
+ <p id="notice" class="notice">جارٍ التحقق من صلاحيات المدير...</p>
+ <section id="overview"><div class="section-title"><div><h2>نظرة عامة</h2><p>ملخص سريع لأداء المنصة</p></div></div>
+  <div class="stats">
+   <div class="stat" style="--glow:#8c7cff"><div class="stat-top"><span>إجمالي العملاء</span><span class="stat-icon">♙</span></div><strong id="customers">—</strong><small>حسابات العملاء المسجلة</small></div>
+   <div class="stat" style="--glow:#41cbd7"><div class="stat-top"><span>إجمالي الطلبات</span><span class="stat-icon">▤</span></div><strong id="orders-count">—</strong><small>طلبات الأرقام في المنصة</small></div>
+   <div class="stat" style="--glow:#3bd6a0"><div class="stat-top"><span>المبيعات المكتملة</span><span class="stat-icon">↗</span></div><strong id="sales">—</strong><small>إجمالي المبيعات بالدولار</small></div>
+   <div class="stat" style="--glow:#e8ad5d"><div class="stat-top"><span>رصيد المزوّد</span><span class="stat-icon">◉</span></div><strong id="provider">—</strong><small>الرصيد المتاح لدى مزود الأرقام</small></div>
+  </div></section>
+ <section class="panel"><h2>هامش الربح</h2><p class="muted">حدد نسبة الزيادة على سعر المزود قبل عرض السعر على العملاء.</p><div class="row"><input id="markup" type="text" inputmode="decimal" autocomplete="off" value="10" aria-label="نسبة هامش الربح"><button class="btn" id="save-markup">حفظ النسبة %</button></div></section>
+ <section id="wallet" class="panel"><h2>شحن محفظة عميل</h2><p class="muted">أضف رصيداً يدوياً إلى حساب العميل باستخدام بريده الإلكتروني بعد التحقق من استلام المبلغ.</p><div class="row"><input id="customer-email" type="email" autocomplete="email" placeholder="البريد الإلكتروني للعميل"><input id="amount" type="number" min="0.01" step="0.01" placeholder="المبلغ بالدولار"><button class="btn" id="credit">＋ إضافة الرصيد</button></div></section>
+ <section id="payments" class="panel"><h2>إعداد وسائل الدفع</h2><p class="muted">أدخل بيانات المحافظ والحسابات التي ستظهر للعملاء عند طلب شحن الرصيد.</p><div class="payment-fields">
+  <label>فلوسك<input id="method-fulusak" placeholder="رقم المحفظة واسم المستفيد"></label>
+  <label>جيب<input id="method-jeeb" placeholder="رقم المحفظة واسم المستفيد"></label>
+  <label>ون كاش<input id="method-onecash" placeholder="رقم المحفظة واسم المستفيد"></label>
+  <label>كاش<input id="method-cash" placeholder="رقم الحساب واسم المستفيد"></label>
+  <label>Binance / USDT<input id="method-binance" placeholder="الشبكة والعنوان أو Pay ID"></label>
+  <div><button class="btn" id="save-methods">حفظ بيانات الدفع</button></div>
+ </div></section>
+ <section id="reviews" class="panel"><h2>طلبات الدفع اليدوية</h2><p class="muted">راجع بيانات التحويل والإيصال قبل قبول الطلب. قبول الطلب يضيف الرصيد بالدولار إلى محفظة العميل.</p><div id="payment-review">جارٍ تحميل الطلبات...</div></section>
+ <section id="customers" class="panel"><h2>العملاء</h2><div id="users">—</div></section>
+ <section id="orders-section" class="panel"><h2>آخر الطلبات</h2><div id="orders">—</div></section>
+ <div class="footer-note">طلباتي نمبر · لوحة الإدارة © 2026</div>
+</main></div><script src="/admin.js"></script>
+<script>
+document.querySelectorAll('.side-nav a').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.side-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active')}));
+</script></body></html>
