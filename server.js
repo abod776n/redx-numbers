@@ -269,8 +269,8 @@ async function handleApi(req,res,url){
   const b=await readBody(req);const v=Number(b.percent);if(!Number.isFinite(v)||v<0||v>400)return json(res,400,{error:"MARKUP_RANGE_0_400"});await pool.query("INSERT INTO settings(key,value) VALUES('markup_percent',$1) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value",[String(v)]);return json(res,200,{markup_percent:v});
  }
  if(req.method==="POST"&&url.pathname==="/api/admin/wallet/credit"){
-  const b=await readBody(req);const id=Number(b.user_id),amount=Number(b.amount);if(!Number.isInteger(id)||!Number.isFinite(amount)||amount<=0||amount>10000)return json(res,400,{error:"BAD_CREDIT"});
-  const c=await pool.connect();try{await c.query("BEGIN");const q=await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2 RETURNING id",[amount,id]);if(!q.rowCount){await c.query("ROLLBACK");return json(res,404,{error:"USER_NOT_FOUND"});}await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description) VALUES($1,'credit',$2,'شحن يدوي من الإدارة')",[id,amount]);await c.query("COMMIT");return json(res,200,{ok:true});}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
+  const b=await readBody(req);const email=String(b.email||"").trim().toLowerCase();const amount=Number(b.amount);if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!Number.isFinite(amount)||amount<=0||amount>10000)return json(res,400,{error:"BAD_CREDIT"});
+  const c=await pool.connect();try{await c.query("BEGIN");const q=await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE lower(email)=lower($2) RETURNING id,email",[amount,email]);if(!q.rowCount){await c.query("ROLLBACK");return json(res,404,{error:"USER_NOT_FOUND"});}await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description) VALUES($1,'credit',$2,'شحن يدوي من الإدارة')",[q.rows[0].id,amount]);await c.query("COMMIT");return json(res,200,{ok:true,email:q.rows[0].email});}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
  }
  return json(res,404,{error:"NOT_FOUND"});
 }
