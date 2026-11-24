@@ -210,6 +210,24 @@ async function handleApi(req,res,url){
    return json(res,201,{ok:true,request:q.rows[0],message:"تم استلام طلب الشحن. ستراجع الإدارة رقم المعاملة وتضيف الرصيد بعد التأكد من وصول التحويل."});
   }catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
  }
+ if(req.method==="POST"&&url.pathname==="/api/jeeb/verify-transfer"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  if(!rateLimit(req,"jeeb-verify",5))return json(res,429,{error:"RATE_LIMITED"});
+  const b=await readBody(req),transactionId=String(b.transaction_id||"").trim(),amount=Number(b.amount);
+  if(!transactionId||transactionId.length<4||transactionId.length>120||/[\\s<>]/.test(transactionId))return json(res,400,{error:"أدخل رقم حوالة جيب الصحيح."});
+  if(!Number.isFinite(amount)||amount<560||amount>100000000)return json(res,400,{error:"أدخل مبلغاً لا يقل عن 560 ريال يمني."});
+  const c=await pool.connect();
+  try{
+   await c.query("BEGIN");
+   await c.query("SELECT pg_advisory_xact_lock(hashtext($1))",["jeeb-transfer:"+transactionId]);
+   const exists=await c.query("SELECT id FROM payment_requests WHERE method='jeeb' AND reference=$1 LIMIT 1",[transactionId]);
+   if(exists.rowCount){await c.query("ROLLBACK");return json(res,409,{error:"رقم العملية مسجل مسبقاً. لا ترسله مرة أخرى."});}
+   const amountYer=Number(amount.toFixed(2)),amountUsd=Number((amount/560).toFixed(4));
+   const q=await c.query("INSERT INTO payment_requests(user_id,method,currency,amount_entered,amount_usd,amount_yer,sender_name,reference) VALUES($1,'jeeb','YER',$2,$3,$4,'Jeeb',$5) RETURNING id,status,created_at",[user.id,amount,amountUsd,amountYer,transactionId]);
+   await c.query("COMMIT");
+   return json(res,201,{ok:true,request:q.rows[0],message:"تم استلام طلب شحن جيب. ستراجع الإدارة رقم العملية وتضيف الرصيد بعد التأكد من وصول الحوالة."});
+  }catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
+ }
  if(req.method==="POST"&&url.pathname==="/api/binance/create-order"){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
   if(!binanceConfigured())return json(res,503,{error:"BINANCE_NOT_CONFIGURED",message:"خدمة Binance Pay لم تُفعّل بعد؛ مفاتيح التاجر مطلوبة في إعدادات الاستضافة."});
