@@ -32,7 +32,21 @@ $("number-modal-close").addEventListener("click",hideNumberModal);$("modal-close
 $("number-modal").addEventListener("click",e=>{if(e.target.hasAttribute("data-modal-close"))hideNumberModal();});
 $("copy-number").addEventListener("click",async()=>{const v=$("modal-phone").textContent;if(!v||v==="قيد التجهيز"||v==="—")return;try{await navigator.clipboard.writeText(v);$("copy-number").textContent="تم النسخ ✓";}catch{$("copy-number").textContent="تعذر النسخ";}});
 
-$("orders").addEventListener("click",async e=>{const cancelId=e.target.dataset.cancel;if(cancelId){if(!confirm("هل تريد إلغاء هذا الطلب؟ لن يُعاد المبلغ إلا بعد تأكيد المزود للإلغاء."))return;const btn=e.target;btn.disabled=true;btn.textContent="جارٍ الإلغاء...";try{const d=await api("/api/orders/"+cancelId+"/cancel",{method:"POST",body:"{}"});$("message").textContent=d.message||"تم إلغاء الطلب.";await load();}catch(x){$("message").textContent=x.message;btn.disabled=false;btn.textContent="إلغاء الطلب واسترداد الرصيد";}return;}const id=e.target.dataset.code;if(!id)return;try{const d=await api("/api/orders/"+id+"/code");$("message").textContent=d.status==="ok"?"رمز التحقق: "+d.code:"الحالة: "+d.status;await load();}catch(x){$("message").textContent=x.message;}});
+$("orders").addEventListener("click",async e=>{
+ const target=e.target.closest("[data-code],[data-cancel]");if(!target)return;
+ const provider=target.dataset.provider==="hero"?"herosms":"orders";
+ const cancelId=target.dataset.cancel;
+ if(cancelId){
+  if(!confirm("هل تريد إلغاء هذا الطلب؟ لن يُعاد المبلغ إلا بعد تأكيد المزود للإلغاء."))return;
+  target.disabled=true;target.textContent="جارٍ الإلغاء...";
+  try{const d=await api("/api/"+provider+"/"+cancelId+"/cancel",{method:"POST",body:"{}"});$("message").textContent=d.message||"تم إلغاء الطلب.";await load();await loadCustomerExtras();}
+  catch(x){$("message").textContent=x.message;target.disabled=false;target.textContent="إلغاء الطلب واسترداد الرصيد";}
+  return;
+ }
+ const id=target.dataset.code;
+ try{const d=await api("/api/"+provider+"/"+id+"/code");$("message").textContent=d.status==="ok"?"رمز التحقق: "+d.code:"الحالة: "+d.status;await load();await loadCustomerExtras();}
+ catch(x){$("message").textContent=x.message;}
+});
 $("logout").onclick=async()=>{await api("/api/logout",{method:"POST"});location.href="/login.html";};
 
 async function loadCustomerExtras(){
@@ -45,14 +59,28 @@ async function loadCustomerExtras(){
   const wallet=await api("/api/wallet");
   const main=await api("/api/orders");
   const hero=await api("/api/herosms/orders");
-  const all=(main.orders||[]).concat(hero.orders||[]);
+  const all=[...(main.orders||[]).map(function(x){return {...x,provider:"main"};}),...(hero.orders||[]).map(function(x){return {...x,provider:"hero"};})];
   const spent=(wallet.transactions||[]).filter(function(x){return x.kind==="debit";}).reduce(function(a,x){return a+Number(x.amount||0);},0);
   $("customer-orders-count").textContent=String(all.length);
   $("customer-spent-total").textContent="$"+spent.toFixed(2);
   $("customer-active-count").textContent=String(all.filter(function(x){return ["waiting","processing","uncertain"].includes(x.status);}).length);
   $("customer-tier").textContent=spent>=100?"VIP":spent>=50?"ذهبي":spent>=20?"فضي":"عضو جديد";
   $("customer-tier-note").textContent="مستوى تعريفي حسب إجمالي مشترياتك.";
-  $("support-tickets").textContent=(tickets.tickets||[]).length+" تذكرة في سجل الدعم.";
+  const orderBox=$("orders");orderBox.replaceChildren();
+  const labels={waiting:"بانتظار الكود",done:"وصل الكود",finished:"مكتمل",refunded:"مسترد",uncertain:"قيد المراجعة",processing:"قيد التنفيذ"};
+  all.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);}).forEach(function(order){
+   const item=document.createElement("div");item.className="order";
+   const title=document.createElement("b");title.textContent=order.phone_number||"الرقم قيد التجهيز";
+   const source=document.createElement("small");source.textContent=" · "+(order.provider==="hero"?"السيرفر الثاني":"السيرفر الأول")+" · "+(serviceLabels[order.service]||order.service)+" · "+(labels[order.status]||order.status)+" · $"+Number(order.sale_price||0).toFixed(2);
+   item.append(title,source);
+   if(order.code){const code=document.createElement("p");code.textContent="رمز التفعيل: "+order.code;item.append(code);}
+   if(order.status==="waiting"){const check=document.createElement("button");check.className="action";check.textContent="فحص الكود";check.dataset.code=order.id;check.dataset.provider=order.provider;item.append(check);}
+   if(["waiting","done"].includes(order.status)){const cancel=document.createElement("button");cancel.className="action cancel-order";cancel.textContent="إلغاء الطلب واسترداد الرصيد";cancel.dataset.cancel=order.id;cancel.dataset.provider=order.provider;item.append(cancel);}
+   orderBox.append(item);
+  });
+  const ticketBox=$("support-tickets");ticketBox.replaceChildren();
+  if(!(tickets.tickets||[]).length)ticketBox.textContent="لم ترسل أي تذكرة دعم حتى الآن.";
+  (tickets.tickets||[]).forEach(function(ticket){const item=document.createElement("div");item.className="support-ticket";const title=document.createElement("b");title.textContent="#"+ticket.id+" · "+ticket.subject;const state=document.createElement("small");state.textContent="الحالة: "+({open:"مفتوحة",answered:"تم الرد",closed:"مغلقة"}[ticket.status]||ticket.status);const msg=document.createElement("small");msg.textContent=ticket.message;item.append(title,state,msg);if(ticket.admin_reply){const reply=document.createElement("small");reply.textContent="رد الإدارة: "+ticket.admin_reply;item.append(reply);}ticketBox.append(item);});
  }catch(e){if(e.message==="UNAUTHORIZED")location.href="/login.html";else $("support-tickets").textContent="تعذر تحميل البيانات: "+e.message;}
 }
 $("support-form").addEventListener("submit",async function(e){
