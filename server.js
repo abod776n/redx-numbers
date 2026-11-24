@@ -20,7 +20,7 @@ const hash = (v) => crypto.createHash("sha256").update(v).digest("hex");
 const token = () => crypto.randomBytes(32).toString("base64url");
 const cookie = (name, value, maxAge) => `${name}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 const parseCookies = (s="") => Object.fromEntries(s.split(";").map(x=>x.trim().split("=")).filter(x=>x.length===2));
-const readBody = (req) => new Promise((resolve,reject)=>{let s="";req.on("data",c=>{s+=c;if(s.length>16384){reject(new Error("BODY_TOO_LARGE"));req.destroy();}});req.on("end",()=>{try{resolve(s?JSON.parse(s):{});}catch{reject(new Error("BAD_JSON"));}});req.on("error",reject);});
+const readBody = (req) => new Promise((resolve,reject)=>{let s="";req.on("data",c=>{s+=c;if(s.length>3*1024*1024){reject(new Error("BODY_TOO_LARGE"));req.destroy();}});req.on("end",()=>{try{resolve(s?JSON.parse(s):{});}catch{reject(new Error("BAD_JSON"));}});req.on("error",reject);});
 const safeUser = u => ({id:u.id,email:u.email,phone:u.phone,role:u.role,wallet_balance:Number(u.wallet_balance),created_at:u.created_at});
 async function initDb(){
  if(!pool) return;
@@ -31,6 +31,9 @@ async function initDb(){
  CREATE TABLE IF NOT EXISTS wallet_transactions(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),kind TEXT NOT NULL,amount NUMERIC(14,4) NOT NULL,description TEXT NOT NULL,reference TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
  CREATE TABLE IF NOT EXISTS number_orders(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),provider_order_id TEXT,service TEXT NOT NULL,country_code TEXT NOT NULL,country_name TEXT,phone_number TEXT,provider_price NUMERIC(14,4),sale_price NUMERIC(14,4),status TEXT NOT NULL,code TEXT,passcode TEXT,expires_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
  CREATE INDEX IF NOT EXISTS number_orders_user_idx ON number_orders(user_id,created_at DESC);
+ CREATE TABLE IF NOT EXISTS payment_requests(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),method TEXT NOT NULL,currency TEXT NOT NULL CHECK(currency IN ('USD','YER')),amount_entered NUMERIC(14,2) NOT NULL,amount_usd NUMERIC(14,4) NOT NULL,amount_yer NUMERIC(16,2) NOT NULL,sender_name TEXT NOT NULL,reference TEXT NOT NULL,proof_data TEXT,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),admin_note TEXT,reviewed_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+ CREATE INDEX IF NOT EXISTS payment_requests_user_idx ON payment_requests(user_id,created_at DESC);
+ INSERT INTO settings(key,value) VALUES ('payment_methods', '{"fulusak":"","jeeb":"","onecash":"","cash":"","binance":""}') ON CONFLICT(key) DO NOTHING;
  CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
  INSERT INTO settings(key,value) VALUES ('markup_percent','10') ON CONFLICT(key) DO NOTHING;
  `);
@@ -148,6 +151,63 @@ async function handleApi(req,res,url){
   if(r.data.status==="ok"){await pool.query("UPDATE number_orders SET status='done',code=$1,passcode=$2,updated_at=now() WHERE id=$3",[r.data.code,r.data.pass||"",o.id]);return json(res,200,{status:"ok",code:r.data.code,pass:r.data.pass||""});}
   if(r.data.code==="EXPIRED"||r.data.code==="REFUNDED"){const c=await pool.connect();try{await c.query("BEGIN");const changed=await c.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND status='waiting' RETURNING user_id,sale_price",[o.id]);if(changed.rowCount){await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[changed.rows[0].sale_price,changed.rows[0].user_id]);await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد تلقائي لانتهاء الرقم',$3)",[changed.rows[0].user_id,changed.rows[0].sale_price,"order:"+o.id]);}await c.query("COMMIT");}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}return json(res,200,{status:"refunded",code:r.data.code});}
   return json(res,r.httpStatus,{status:r.data.status||"waiting",expires_in:r.data.expires_in});
+ }
+
+ if(req.method==="GET"&&url.pathname==="/api/payment-methods"){
+  const q=await pool.query("SELECT value FROM settings WHERE key='payment_methods'");
+  let methods={};try{methods=JSON.parse(q.rows[0]?.value||"{}");}catch{}
+  return json(res,200,{exchange_rate:560,methods});
+ }
+ if(req.method==="POST"&&url.pathname==="/api/payment-requests"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  if(!rateLimit(req,"payment-request",5))return json(res,429,{error:"RATE_LIMITED"});
+  const b=await readBody(req);const method=String(b.method||"");const currency=String(b.currency||"USD");
+  const amount=Number(b.amount);const sender=String(b.sender_name||"").trim().slice(0,120);const reference=String(b.reference||"").trim().slice(0,120);
+  const allowed=["fulusak","jeeb","onecash","cash","binance"];
+  if(!allowed.includes(method)||!["USD","YER"].includes(currency)||!Number.isFinite(amount)||amount<=0||amount>100000000||!sender||!reference)return json(res,400,{error:"أكمل بيانات التحويل والمبلغ ورقم العملية."});
+  const amountUsd=Number((currency==="USD"?amount:amount/560).toFixed(4));const amountYer=Number((currency==="YER"?amount:amount*560).toFixed(2));
+  if(amountUsd<1)return json(res,400,{error:"الحد الأدنى لطلب الشحن دولار واحد."});
+  let proof=b.proof_data?String(b.proof_data):null;
+  if(proof&&(!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(proof)||proof.length>2500000))return json(res,400,{error:"صورة الإثبات يجب أن تكون PNG أو JPG أو WEBP وأقل من 1.8 ميجابايت."});
+  const q=await pool.query("INSERT INTO payment_requests(user_id,method,currency,amount_entered,amount_usd,amount_yer,sender_name,reference,proof_data) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id,status,created_at",[user.id,method,currency,amount,amountUsd,amountYer,sender,reference,proof]);
+  return json(res,201,{request:q.rows[0],message:"تم استلام طلب الدفع وسيظهر رصيدك بعد مراجعة الإدارة."});
+ }
+ if(req.method==="GET"&&url.pathname==="/api/payment-requests"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const q=await pool.query("SELECT id,method,currency,amount_entered,amount_usd,amount_yer,sender_name,reference,status,admin_note,created_at,reviewed_at FROM payment_requests WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50",[user.id]);
+  return json(res,200,{requests:q.rows});
+ }
+ if(req.method==="GET"&&url.pathname==="/api/admin/payment-methods"){
+  const q=await pool.query("SELECT value FROM settings WHERE key='payment_methods'");let methods={};try{methods=JSON.parse(q.rows[0]?.value||"{}");}catch{}
+  return json(res,200,{methods});
+ }
+ if(req.method==="POST"&&url.pathname==="/api/admin/payment-methods"){
+  const b=await readBody(req);const allowed=["fulusak","jeeb","onecash","cash","binance"];const methods={};
+  for(const k of allowed)methods[k]=String(b.methods?.[k]||"").trim().slice(0,500);
+  await pool.query("INSERT INTO settings(key,value) VALUES('payment_methods',$1) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value",[JSON.stringify(methods)]);
+  return json(res,200,{ok:true,methods});
+ }
+ if(req.method==="GET"&&url.pathname==="/api/admin/payment-requests"){
+  const q=await pool.query("SELECT p.id,p.user_id,p.method,p.currency,p.amount_entered,p.amount_usd,p.amount_yer,p.sender_name,p.reference,p.proof_data,p.status,p.admin_note,p.created_at,u.email,u.phone FROM payment_requests p JOIN users u ON u.id=p.user_id ORDER BY CASE WHEN p.status='pending' THEN 0 ELSE 1 END,p.created_at DESC LIMIT 200");
+  return json(res,200,{requests:q.rows});
+ }
+ const paymentReview=url.pathname.match(/^\/api\/admin\/payment-requests\/(\d+)\/(approve|reject)$/);
+ if(req.method==="POST"&&paymentReview){
+  const id=Number(paymentReview[1]);const action=paymentReview[2];const b=await readBody(req);const c=await pool.connect();
+  try{
+   await c.query("BEGIN");
+   const q=await c.query("SELECT * FROM payment_requests WHERE id=$1 FOR UPDATE",[id]);const p=q.rows[0];
+   if(!p){await c.query("ROLLBACK");return json(res,404,{error:"طلب الدفع غير موجود."});}
+   if(p.status!=="pending"){await c.query("ROLLBACK");return json(res,409,{error:"تمت مراجعة هذا الطلب مسبقاً."});}
+   if(action==="approve"){
+    await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[p.amount_usd,p.user_id]);
+    await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'credit',$2,$3,$4)",[p.user_id,p.amount_usd,"شحن محفظة بعد قبول الدفع اليدوي","payment:"+p.id]);
+    await c.query("UPDATE payment_requests SET status='approved',admin_note=$1,reviewed_at=now() WHERE id=$2",[String(b.note||"تم التحقق من الدفع").slice(0,500),id]);
+   }else{
+    await c.query("UPDATE payment_requests SET status='rejected',admin_note=$1,reviewed_at=now() WHERE id=$2",[String(b.note||"تعذر التحقق من الدفع").slice(0,500),id]);
+   }
+   await c.query("COMMIT");return json(res,200,{ok:true,status:action==="approve"?"approved":"rejected"});
+  }catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
  }
  if(req.method==="GET"&&url.pathname==="/api/wallet"){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
