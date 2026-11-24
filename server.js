@@ -87,8 +87,14 @@ async function heroRequest(method, endpoint, body){
  const ac=new AbortController();const timer=setTimeout(()=>ac.abort(),20000);
  try{
   const r=await fetch("https://hero-sms.com/api/v1"+endpoint,{method,headers:{"Authorization":"ApiKey "+key,"Accept":"application/json","Content-Type":"application/json"},...(body?{body:JSON.stringify(body)}:{}),signal:ac.signal});
-  const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{};}catch{data={message:raw.slice(0,300)};}
-  if(!r.ok)throw Object.assign(new Error(String(data.message||data.error||data.detail||("HEROSMS_HTTP_"+r.status)).slice(0,300)),{status:r.status>=500?502:400,providerStatus:r.status});
+  const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{};}catch{data={raw:raw.slice(0,500)};}
+  if(!r.ok){
+   const detailValue=data.details??data.errors??data.detail??data.message??data.error??data.raw;
+   const detail=typeof detailValue==="string"?detailValue:(detailValue?JSON.stringify(detailValue):"");
+   const title=String(data.title||data.errorCode||"").trim();
+   const message=[title,detail].filter(Boolean).join(": ")||("HEROSMS_HTTP_"+r.status);
+   throw Object.assign(new Error(message.slice(0,700)),{status:r.status>=500?502:400,providerStatus:r.status});
+  }
   return {status:r.status,data};
  }finally{clearTimeout(timer);}
 }
