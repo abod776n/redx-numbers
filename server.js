@@ -39,7 +39,7 @@ async function initDb(){
  `);
 }
 // ReadyWA Reseller API adapter. Credentials are read only from Railway environment variables.
-const READYWA_BASE = (process.env.READYWA_API_BASE || "http://38.60.250.36:8888/api/v1").replace(/\\/$/, "");
+const READYWA_BASE = (process.env.READYWA_API_BASE || "http://38.60.250.36:8888/api/v1").replace(/\/+$/, "");
 async function provider(args){
  const apiKey=process.env.READYWA_API_KEY;
  if(!apiKey) throw Object.assign(new Error("مفتاح مزود الأرقام غير مضبوط في إعدادات الموقع."),{status:503});
