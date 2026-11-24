@@ -57,13 +57,19 @@
 .binance-history-item b{color:#e7c36b}.binance-history-item small{color:#8ea1bc}
 @media(max-width:600px){.binance-topup-row{grid-template-columns:1fr}.binance-topup-row .dash-buy{width:100%}}
 </style>
+<style>
+.payment-method-heading{font-size:11px;font-weight:700;color:#dbe5f7;margin:15px 0 9px}
+.payment-method-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.payment-method-tile{min-width:0;min-height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px solid #ffffff1c;border-radius:12px;background:#091426;color:#cbd7ea;cursor:pointer;font:inherit;padding:8px 4px;transition:.18s}
+.payment-method-tile span{font-size:19px;line-height:1.1}.payment-method-tile b{font-size:9px;white-space:nowrap}
+.payment-method-tile.selected{border-color:#9c86ff;background:linear-gradient(145deg,#7966ff2b,#1c2942);color:#fff;box-shadow:0 0 0 1px #9c86ff22}
+.payment-currency{margin-top:12px;max-width:100%}
+@media(max-width:600px){.payment-method-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.payment-method-tile{min-height:60px}}
+</style>
 <section class="purchase-panel payment-panel" id="payment">
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن الرصيد</div><h2>إيداع يدوي للمحفظة</h2><p>حوّل المبلغ ثم أرسل رقم العملية والإثبات. لن يُضاف الرصيد قبل مراجعة الإدارة.</p></div><div class="purchase-symbol">⇧</div></div>
 <div class="exchange-banner"><b>سعر الصرف الثابت</b><strong>1 USD = 560 YER</strong></div>
-<div class="purchase-fields">
-<div class="field-box"><label for="pay-method">وسيلة الدفع</label><select id="pay-method"><option value="fulusak">فلوسك</option><option value="jeeb">جيب</option><option value="onecash">ون كاش</option><option value="cash">كاش</option><option value="binance">Binance / USDT</option></select></div>
-<div class="field-box"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
-</div>
+<div class="payment-method-heading">اختر وسيلة الدفع</div><div class="payment-method-grid" id="payment-method-grid"><button type="button" class="payment-method-tile selected" data-pay-method="fulusak"><span>💳</span><b>فلوسك</b></button><button type="button" class="payment-method-tile" data-pay-method="jeeb"><span>📲</span><b>جيب</b></button><button type="button" class="payment-method-tile" data-pay-method="onecash"><span>💠</span><b>ون كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="cash"><span>💵</span><b>كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="binance"><span>₿</span><b>Binance</b></button></div><select id="pay-method" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="fulusak">فلوسك</option><option value="jeeb">جيب</option><option value="onecash">ون كاش</option><option value="cash">كاش</option><option value="binance">Binance / USDT</option></select><div class="field-box payment-currency"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
 <div class="payment-destination" id="payment-destination">تعليمات وبيانات التحويل ستظهر هنا.</div>
 <div class="purchase-fields">
 <div class="field-box"><label for="pay-amount">المبلغ المحوّل</label><input id="pay-amount" type="number" min="1" step="0.01" placeholder="أدخل المبلغ"></div>
