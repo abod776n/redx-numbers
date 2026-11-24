@@ -148,6 +148,13 @@ async function handleApi(req,res,url){
  }
  const user=await auth(req);
  if(req.method==="GET" && url.pathname==="/api/me")return user?json(res,200,{user:safeUser(user)}):json(res,401,{error:"UNAUTHORIZED"});
+ if(req.method==="POST"&&url.pathname==="/api/sessions/revoke-others"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const c=parseCookies(req.headers.cookie);
+  if(!c.talabati_session)return json(res,401,{error:"UNAUTHORIZED"});
+  const q=await pool.query("DELETE FROM sessions WHERE user_id=$1 AND token_hash<>$2 RETURNING id",[user.id,hash(c.talabati_session)]);
+  return json(res,200,{revoked:q.rowCount});
+ }
  if(req.method==="GET"&&url.pathname==="/api/referrals"){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
   const q=await pool.query("SELECT referral_code,(SELECT count(*)::int FROM users WHERE referred_by=$1) AS invited FROM users WHERE id=$1",[user.id]);
