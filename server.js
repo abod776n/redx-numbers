@@ -38,18 +38,9 @@ async function initDb(){
  INSERT INTO settings(key,value) VALUES ('markup_percent','10') ON CONFLICT(key) DO NOTHING;
  `);
 }
-async function provider(params){
- const key=process.env.SERVICES_API_KEY;
- if(!key) throw Object.assign(new Error("PROVIDER_NOT_CONFIGURED"),{status:503});
- const url=new URL("https://servicesapi.tech/");
- for(const [k,v] of Object.entries(params)) if(v!==undefined && v!==null) url.searchParams.set(k,String(v));
- const ac=new AbortController(); const t=setTimeout(()=>ac.abort(),20000);
- try{
-  const r=await fetch(url,{headers:{"X-API-Key":key,"Accept":"application/json"},signal:ac.signal});
-  const data=await r.json().catch(()=>null);
-  if(!data || typeof data!=="object") throw Object.assign(new Error("BAD_PROVIDER_RESPONSE"),{status:502});
-  return {httpStatus:r.status,data};
- }finally{clearTimeout(t);}
+// Provider one removed. A new provider adapter will be added after receiving its API documentation.
+async function provider(){
+ throw Object.assign(new Error("لم يتم ربط مزود أرقام حالياً. سيتم تفعيل الخدمة بعد إضافة المزود الجديد."),{status:503});
 }
 async function auth(req){
  if(!pool) return null;
