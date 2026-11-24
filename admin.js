@@ -30,6 +30,28 @@ async function loadPaymentAdmin(){
  const labels={pending:"قيد المراجعة",approved:"مقبول",rejected:"مرفوض"};
  $("payment-review").innerHTML=payments.requests.length?payments.requests.map(item=>'<div class="item"><b>طلب شحن #'+item.id+'</b> — العميل #'+item.user_id+' ('+safe(item.email||item.phone)+')<br>الوسيلة: '+safe(methodNames[item.method]||item.method)+' · المبلغ: '+Number(item.amount_entered).toLocaleString("en-US")+' '+safe(item.currency)+' · يعادل '+money(item.amount_usd)+'<br>اسم المحوّل: '+safe(item.sender_name)+' · المرجع: '+safe(item.reference)+'<br>الحالة: <b>'+safe(labels[item.status]||item.status)+'</b> · '+date(item.created_at)+(item.proof_data?'<br><a target="_blank" rel="noopener" href="'+safe(item.proof_data)+'">عرض صورة الإيصال</a>':'<br>لا توجد صورة إيصال')+(item.status==="pending"?' <div class="row" style="margin-top:10px"><button class="btn" data-approve="'+item.id+'">قبول وشحن '+money(item.amount_usd)+'</button><button class="btn" style="background:#9b3b52" data-reject="'+item.id+'">رفض الطلب</button></div>':'')+(item.admin_note?'<br>ملاحظة: '+safe(item.admin_note):"")+'</div>').join(""):'<div class="item">لا توجد طلبات دفع.</div>';
 }
+
+async function loadSupportTickets(){
+ const data=await api("/api/admin/support-tickets");
+ const box=$("admin-support-tickets");box.replaceChildren();
+ if(!(data.tickets||[]).length){box.textContent="لا توجد تذاكر دعم حالياً.";return;}
+ for(const ticket of data.tickets){
+  const card=document.createElement("article");card.className="item";
+  const title=document.createElement("b");title.textContent="#"+ticket.id+" · "+ticket.subject;
+  const who=document.createElement("small");who.textContent="العميل: "+(ticket.email||ticket.phone||ticket.user_id)+" · "+({open:"مفتوحة",answered:"تم الرد",closed:"مغلقة"}[ticket.status]||ticket.status);
+  const body=document.createElement("p");body.textContent=ticket.message;
+  card.append(title,who,body);
+  if(ticket.admin_reply){const reply=document.createElement("small");reply.textContent="آخر رد: "+ticket.admin_reply;card.append(reply);}
+  if(ticket.status!=="closed"){
+   const area=document.createElement("textarea");area.rows=2;area.placeholder="اكتب رد الإدارة هنا";area.className="search-input";
+   const button=document.createElement("button");button.className="btn";button.textContent="إرسال الرد";
+   button.addEventListener("click",async()=>{if(area.value.trim().length<2){$("notice").textContent="اكتب رداً قبل الإرسال.";return;}button.disabled=true;try{await api("/api/admin/support-tickets/"+ticket.id+"/reply",{method:"POST",body:JSON.stringify({reply:area.value.trim(),status:"answered"})});$("notice").textContent="تم إرسال الرد على التذكرة #"+ticket.id;await loadSupportTickets();}catch(e){$("notice").textContent=e.message;button.disabled=false;}});
+   card.append(area,button);
+  }
+  box.append(card);
+ }
+}
+
 async function init(){
  try{
   const me=await api("/api/me");if(me.user.role!=="admin")throw Error("هذا الحساب ليس مديراً.");
@@ -46,6 +68,7 @@ async function init(){
   renderUsers();renderOrders();renderTransactions();
   try{const provider=await api("/api/provider/balance");$("provider").textContent=provider.status==="ok"?money(provider.balance):"غير متاح";}catch{$("provider").textContent="غير متاح";}
   await loadPaymentAdmin();
+  await loadSupportTickets();
  }catch(error){$("notice").textContent=error.message+" — سجّل الدخول بحساب المدير.";if(["UNAUTHORIZED","ADMIN_ONLY"].includes(error.message)||error.message.includes("ليس مديراً"))setTimeout(()=>location.href="/login.html",1800);}
 }
 $("save-markup").onclick=async()=>{
@@ -88,6 +111,7 @@ $("user-search").addEventListener("input",renderUsers);
 $("order-search").addEventListener("input",renderOrders);
 $("transaction-search").addEventListener("input",renderTransactions);
 document.querySelectorAll("[data-order-filter]").forEach(button=>button.addEventListener("click",()=>{orderFilter=button.dataset.orderFilter;document.querySelectorAll("[data-order-filter]").forEach(item=>item.classList.toggle("active",item===button));renderOrders();}));
+$("refresh-support").onclick=async()=>{try{await loadSupportTickets();}catch(e){$("notice").textContent=e.message;}};
 $("refresh-admin").onclick=async()=>{const button=$("refresh-admin");button.disabled=true;button.textContent="جارٍ التحديث...";try{await init();}finally{button.disabled=false;button.textContent="↻ تحديث البيانات";}};
 $("logout").onclick=async()=>{try{await api("/api/logout",{method:"POST"});}finally{location.href="/login.html";}};
 init();
