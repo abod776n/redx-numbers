@@ -160,7 +160,7 @@ async function handleApi(req,res,url){
   const [u,o,w]=await Promise.all([pool.query("SELECT count(*)::int n FROM users WHERE role='customer'"),pool.query("SELECT count(*)::int n FROM number_orders"),pool.query("SELECT coalesce(sum(sale_price),0)::numeric total FROM number_orders WHERE status='done'")]);return json(res,200,{customers:u.rows[0].n,orders:o.rows[0].n,sales:Number(w.rows[0].total)});
  }
  if(req.method==="POST"&&url.pathname==="/api/admin/markup"){
-  const b=await readBody(req);const v=Number(b.percent);if(!Number.isFinite(v)||v<0||v>50)return json(res,400,{error:"MARKUP_RANGE_0_50"});await pool.query("INSERT INTO settings(key,value) VALUES('markup_percent',$1) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value",[String(v)]);return json(res,200,{markup_percent:v});
+  const b=await readBody(req);const v=Number(b.percent);if(!Number.isFinite(v)||v<0||v>400)return json(res,400,{error:"MARKUP_RANGE_0_400"});await pool.query("INSERT INTO settings(key,value) VALUES('markup_percent',$1) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value",[String(v)]);return json(res,200,{markup_percent:v});
  }
  if(req.method==="POST"&&url.pathname==="/api/admin/wallet/credit"){
   const b=await readBody(req);const id=Number(b.user_id),amount=Number(b.amount);if(!Number.isInteger(id)||!Number.isFinite(amount)||amount<=0||amount>10000)return json(res,400,{error:"BAD_CREDIT"});
