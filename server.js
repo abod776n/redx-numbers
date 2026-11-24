@@ -98,6 +98,13 @@ async function heroRequest(method, endpoint, body){
   return {status:r.status,data};
  }finally{clearTimeout(timer);}
 }
+function heroBasePrice(item){
+ const p=item?.prices||{};
+ // The offers endpoint can expose a default quote below the currently accepted
+ // activation floor. Use the highest published purchasable tier to avoid WRONG_MAX_PRICE.
+ const values=[p.default,p.retail,p.min].map(Number).filter(v=>Number.isFinite(v)&&v>0);
+ return values.length?Math.max(...values):0;
+}
 function heroErrorMessage(e){return e.name==="AbortError"?"انتهت مهلة الاتصال بسيرفر رقم اثنين.":String(e.message||"تعذر الاتصال بسيرفر رقم اثنين.");}
 
 async function auth(req){
@@ -156,7 +163,7 @@ async function handleApi(req,res,url){
   const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");
   const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
   const rows=result.data?.data?.[service]||{};
-  const offers=Object.entries(rows).map(([country,item])=>{const base=Number(item?.prices?.default??item?.prices?.retail??item?.prices?.min??0);const count=Number(item?.counts?.total??0);return {country_code:String(country),country_name:"دولة رقم "+country,price:Number((base*(1+markup/100)).toFixed(4)),provider_price:base,qty:count,available:count>0};}).filter(x=>x.price>0).sort((a,b)=>a.price-b.price);
+  const offers=Object.entries(rows).map(([country,item])=>{const base=heroBasePrice(item);const count=Number(item?.counts?.total??0);return {country_code:String(country),country_name:"دولة رقم "+country,price:Number((base*(1+markup/100)).toFixed(4)),provider_price:base,qty:count,available:count>0};}).filter(x=>x.price>0).sort((a,b)=>a.price-b.price);
   return json(res,200,{provider:"herosms",service,offers});
  }
  if(req.method==="GET" && url.pathname==="/api/herosms/orders"){
@@ -170,7 +177,7 @@ async function handleApi(req,res,url){
   const b=await readBody(req),service=String(b.service||"wa").toLowerCase(),country=String(b.country_code||"");
   if(!/^[a-zA-Z]{2,4}$/.test(service)||!/^[0-9]{1,3}$/.test(country))return json(res,400,{error:"اختر الخدمة والدولة بشكل صحيح."});
   const offers=await heroRequest("GET","/activations/offers/sms?services="+encodeURIComponent(service)+"&countries="+encodeURIComponent(country));
-  const item=offers.data?.data?.[service]?.[country];const cost=Number(item?.prices?.default??item?.prices?.retail??item?.prices?.min??0);const qty=Number(item?.counts?.total??0);
+  const item=offers.data?.data?.[service]?.[country];const cost=heroBasePrice(item);const qty=Number(item?.counts?.total??0);
   if(!cost||qty<1)return json(res,404,{error:"لا توجد أرقام متاحة لهذه الدولة على سيرفر رقم اثنين."});
   const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");
   const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10))),sale=Number((cost*(1+markup/100)).toFixed(4));
