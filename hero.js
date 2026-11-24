@@ -4,6 +4,7 @@
 
   let service = "wa";
   let offers = [];
+  let heroSort = "asc";
 
   async function request(url, options = {}) {
     const response = await fetch(url, {
@@ -22,39 +23,51 @@
     })[char]);
   }
 
-  function showProvider(provider) {
-    const isHero = provider === "hero";
-    $("main-provider-panel").hidden = isHero;
-    $("herosms-panel").hidden = !isHero;
-    document.querySelectorAll("[data-provider-tab]").forEach(button => {
-      button.classList.toggle("active", button.dataset.providerTab === provider);
-    });
-    if (isHero) loadOffers();
-  }
-
-  async function loadOffers() {
-    const select = $("hero-country");
-    select.innerHTML = '<option value="">جارٍ تحميل العروض...</option>';
-    $("hero-price").textContent = "يتم جلب الأسعار والتوفر من HEROSMS...";
-    try {
-      const data = await request("/api/herosms/offers?service=" + encodeURIComponent(service));
-      offers = Array.isArray(data.offers) ? data.offers : [];
-      select.innerHTML = offers.length
-        ? offers.map(offer => '<option value="' + escapeHtml(offer.country_code) + '">' +
-            escapeHtml(offer.country_name || ("الدولة " + offer.country_code)) +
-            " — $" + Number(offer.price).toFixed(4) + " — متاح " +
-            Number(offer.qty || 0) + "</option>").join("")
-        : '<option value="">لا توجد دول متاحة حالياً</option>';
-      showOfferPrice();
-    } catch (error) {
-      offers = [];
-      select.innerHTML = '<option value="">تعذر تحميل الدول</option>';
-      $("hero-price").textContent = error.message;
+  function flagFor(offer) {
+    const iso = String(offer.iso || offer.iso2 || offer.country_iso || "").toUpperCase();
+    if (/^[A-Z]{2}$/.test(iso)) {
+      return String.fromCodePoint(...[...iso].map(char => 127397 + char.charCodeAt(0)));
     }
+    return "🌍";
   }
 
   function selectedOffer() {
     return offers.find(offer => String(offer.country_code) === $("hero-country").value);
+  }
+
+  function renderOffers(filter = "") {
+    const query = filter.trim().toLocaleLowerCase();
+    const entries = offers.filter(offer => {
+      const name = offer.country_name || offer.name_ar || offer.name || "";
+      return (String(name) + " " + String(offer.country_code)).toLocaleLowerCase().includes(query);
+    }).sort((a, b) => heroSort === "asc"
+      ? Number(a.price || 0) - Number(b.price || 0)
+      : Number(b.price || 0) - Number(a.price || 0));
+
+    $("hero-country-options").innerHTML = entries.length ? entries.map(offer => {
+      const code = String(offer.country_code);
+      const name = offer.country_name || offer.name_ar || offer.name || ("الدولة " + code);
+      const active = code === $("hero-country").value ? " active" : "";
+      return '<button type="button" class="country-option' + active + '" data-hero-country="' + escapeHtml(code) + '">' +
+        '<span class="country-option-flag">' + flagFor(offer) + '</span>' +
+        '<span class="country-option-info"><b>' + escapeHtml(name) + '</b><small>متاح: ' +
+        Number(offer.qty || 0) + ' رقم</small></span>' +
+        '<span class="country-option-price">$' + Number(offer.price || 0).toFixed(4) + '</span></button>';
+    }).join("") : '<div class="country-empty">لا توجد دولة مطابقة لبحثك.</div>';
+  }
+
+  function selectOffer(code) {
+    $("hero-country").value = String(code);
+    const offer = selectedOffer();
+    if (!offer) return;
+    $("hero-country-flag").textContent = flagFor(offer);
+    $("hero-country-name").textContent = offer.country_name || offer.name_ar || offer.name || ("الدولة " + code);
+    $("hero-country-meta").textContent = "$" + Number(offer.price).toFixed(4) +
+      " · متاح " + Number(offer.qty || 0) + " رقم";
+    $("hero-country-dropdown").hidden = true;
+    $("hero-country-trigger").setAttribute("aria-expanded", "false");
+    renderOffers($("hero-country-search").value);
+    showOfferPrice();
   }
 
   function showOfferPrice() {
@@ -63,6 +76,40 @@
       ? "السعر النهائي: $" + Number(offer.price).toFixed(4) +
         " · المتاح: " + Number(offer.qty || 0) + " رقم"
       : "لا توجد عروض لهذه الخدمة حالياً.";
+  }
+
+  async function loadOffers() {
+    $("hero-country-name").textContent = "جارٍ تحميل الدول...";
+    $("hero-country-meta").textContent = "لحظات من فضلك";
+    $("hero-country-count").textContent = "جارٍ التحميل";
+    $("hero-country-options").innerHTML = '<div class="country-empty">جارٍ جلب الدول والأسعار...</div>';
+    $("hero-price").textContent = "يتم جلب الأسعار والتوفر من HEROSMS...";
+    try {
+      const data = await request("/api/herosms/offers?service=" + encodeURIComponent(service));
+      offers = Array.isArray(data.offers) ? data.offers : [];
+      $("hero-country").innerHTML = '<option value="">اختر الدولة</option>' +
+        offers.map(offer => '<option value="' + escapeHtml(offer.country_code) + '">' +
+          escapeHtml(offer.country_name || offer.name_ar || offer.name || offer.country_code) +
+          ' — $' + Number(offer.price).toFixed(4) + '</option>').join("");
+      $("hero-country-count").textContent = offers.length + " دولة متاحة";
+      if (offers.length) {
+        const cheapest = [...offers].sort((a, b) => Number(a.price || 0) - Number(b.price || 0))[0];
+        selectOffer(cheapest.country_code);
+      } else {
+        $("hero-country-name").textContent = "لا توجد دول متاحة";
+        $("hero-country-meta").textContent = "جرّب خدمة أخرى لاحقاً";
+        $("hero-price").textContent = "لا توجد دول متاحة لهذه الخدمة حالياً.";
+        renderOffers();
+      }
+    } catch (error) {
+      offers = [];
+      $("hero-country").innerHTML = '<option value="">تعذر تحميل الدول</option>';
+      $("hero-country-name").textContent = "تعذر تحميل الدول";
+      $("hero-country-meta").textContent = error.message;
+      $("hero-country-count").textContent = "خطأ";
+      $("hero-price").textContent = error.message;
+      $("hero-country-options").innerHTML = '<div class="country-empty">تعذر تحميل الدول. حاول مرة أخرى.</div>';
+    }
   }
 
   async function loadOrders() {
@@ -92,8 +139,44 @@
     }
   }
 
+  $("hero-country-trigger").addEventListener("click", () => {
+    const open = $("hero-country-dropdown").hidden;
+    $("hero-country-dropdown").hidden = !open;
+    $("hero-country-trigger").setAttribute("aria-expanded", String(open));
+    if (open) {
+      $("hero-country-search").value = "";
+      renderOffers();
+      $("hero-country-search").focus();
+    }
+  });
+  $("hero-country-search").addEventListener("input", event => renderOffers(event.target.value));
+  document.querySelectorAll("[data-hero-sort]").forEach(button => button.addEventListener("click", () => {
+    heroSort = button.dataset.heroSort;
+    document.querySelectorAll("[data-hero-sort]").forEach(item => item.classList.toggle("active", item === button));
+    renderOffers($("hero-country-search").value);
+  }));
+  $("hero-country-options").addEventListener("click", event => {
+    const button = event.target.closest("[data-hero-country]");
+    if (button) selectOffer(button.dataset.heroCountry);
+  });
+  document.addEventListener("click", event => {
+    const wrap = $("hero-country-picker-wrap");
+    if (wrap && !wrap.contains(event.target)) {
+      $("hero-country-dropdown").hidden = true;
+      $("hero-country-trigger").setAttribute("aria-expanded", "false");
+    }
+  });
+
   document.querySelectorAll("[data-provider-tab]").forEach(button => {
-    button.addEventListener("click", () => showProvider(button.dataset.providerTab));
+    button.addEventListener("click", () => {
+      const isHero = button.dataset.providerTab === "hero";
+      $("main-provider-panel").hidden = isHero;
+      $("herosms-panel").hidden = !isHero;
+      document.querySelectorAll("[data-provider-tab]").forEach(item => {
+        item.classList.toggle("active", item === button);
+      });
+      if (isHero) loadOffers();
+    });
   });
 
   document.querySelectorAll("[data-hero-service]").forEach(button => {
@@ -105,8 +188,6 @@
       loadOffers();
     });
   });
-
-  $("hero-country").addEventListener("change", showOfferPrice);
 
   $("hero-buy").addEventListener("click", async () => {
     const offer = selectedOffer();
