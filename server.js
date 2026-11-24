@@ -26,6 +26,13 @@ async function initDb(){
  if(!pool) return;
  await pool.query(`
  CREATE TABLE IF NOT EXISTS users(id BIGSERIAL PRIMARY KEY,email TEXT UNIQUE,phone TEXT UNIQUE,password_hash TEXT NOT NULL,role TEXT NOT NULL DEFAULT 'customer' CHECK(role IN ('customer','admin')),wallet_balance NUMERIC(14,4) NOT NULL DEFAULT 0 CHECK(wallet_balance>=0),created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+
+ ALTER TABLE users ADD COLUMN IF NOT EXISTS referral_code TEXT;
+ ALTER TABLE users ADD COLUMN IF NOT EXISTS referred_by BIGINT REFERENCES users(id);
+ UPDATE users SET referral_code=upper(substr(md5(random()::text||id::text),1,8)) WHERE referral_code IS NULL;
+ CREATE UNIQUE INDEX IF NOT EXISTS users_referral_code_idx ON users(referral_code);
+ CREATE TABLE IF NOT EXISTS support_tickets(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,subject TEXT NOT NULL,message TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','answered','closed')),admin_reply TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
+ CREATE INDEX IF NOT EXISTS support_tickets_user_idx ON support_tickets(user_id,created_at DESC);
  CREATE TABLE IF NOT EXISTS sessions(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,token_hash TEXT UNIQUE NOT NULL,expires_at TIMESTAMPTZ NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
  CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions(token_hash);
  CREATE TABLE IF NOT EXISTS wallet_transactions(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),kind TEXT NOT NULL,amount NUMERIC(14,4) NOT NULL,description TEXT NOT NULL,reference TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
@@ -124,7 +131,7 @@ async function handleApi(req,res,url){
   const b=await readBody(req);const email=String(b.email||"").trim().toLowerCase();const phone=String(b.phone||"").trim();const password=String(b.password||"");
   if((!email&&!phone)||password.length<10||password.length>200)return json(res,400,{error:"أدخل البريد أو الهاتف وكلمة مرور لا تقل عن 10 أحرف."});
   const passwordHash=await new Promise((resolve,reject)=>crypto.scrypt(password,process.env.SESSION_SECRET||"talabati",64,(e,k)=>e?reject(e):resolve(k.toString("hex"))));
-  try{const q=await pool.query("INSERT INTO users(email,phone,password_hash) VALUES($1,$2,$3) RETURNING *",[email||null,phone||null,passwordHash]);const t=token();await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '30 days')",[q.rows[0].id,hash(t)]);res.setHeader("Set-Cookie",cookie("talabati_session",t,2592000));return json(res,201,{user:safeUser(q.rows[0])});}
+  try{const referral=String(b.referral_code||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,16);const ref=referral?await pool.query("SELECT id FROM users WHERE referral_code=$1",[referral]):{rows:[]};const ownCode=crypto.randomBytes(5).toString("hex").toUpperCase();const q=await pool.query("INSERT INTO users(email,phone,password_hash,referral_code,referred_by) VALUES($1,$2,$3,$4,$5) RETURNING *",[email||null,phone||null,passwordHash,ownCode,ref.rows[0]?.id||null]);const t=token();await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '30 days')",[q.rows[0].id,hash(t)]);res.setHeader("Set-Cookie",cookie("talabati_session",t,2592000));return json(res,201,{user:safeUser(q.rows[0]),referred:!!ref.rows[0]});}
   catch(e){if(e.code==="23505")return json(res,409,{error:"البريد الإلكتروني أو رقم الهاتف مستخدم مسبقاً."});throw e;}
  }
  if(req.method==="POST" && url.pathname==="/api/login"){
@@ -141,6 +148,25 @@ async function handleApi(req,res,url){
  }
  const user=await auth(req);
  if(req.method==="GET" && url.pathname==="/api/me")return user?json(res,200,{user:safeUser(user)}):json(res,401,{error:"UNAUTHORIZED"});
+ if(req.method==="GET"&&url.pathname==="/api/referrals"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const q=await pool.query("SELECT referral_code,(SELECT count(*)::int FROM users WHERE referred_by=$1) AS invited FROM users WHERE id=$1",[user.id]);
+  return json(res,200,{code:q.rows[0]?.referral_code||"",invited:Number(q.rows[0]?.invited||0),link:"/register.html?ref="+encodeURIComponent(q.rows[0]?.referral_code||"")});
+ }
+ if(req.method==="GET"&&url.pathname==="/api/support/tickets"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const q=await pool.query("SELECT id,subject,message,status,admin_reply,created_at,updated_at FROM support_tickets WHERE user_id=$1 ORDER BY created_at DESC LIMIT 50",[user.id]);
+  return json(res,200,{tickets:q.rows});
+ }
+ if(req.method==="POST"&&url.pathname==="/api/support/tickets"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  if(!rateLimit(req,"support-ticket-"+user.id,5))return json(res,429,{error:"يمكنك إرسال 5 تذاكر فقط كل ساعة."});
+  const b=await readBody(req),subject=String(b.subject||"").trim(),message=String(b.message||"").trim();
+  if(subject.length<4||subject.length>120||message.length<10||message.length>2000)return json(res,400,{error:"اكتب عنواناً من 4 إلى 120 حرفاً ورسالة من 10 إلى 2000 حرف."});
+  const q=await pool.query("INSERT INTO support_tickets(user_id,subject,message) VALUES($1,$2,$3) RETURNING id,subject,message,status,created_at",[user.id,subject,message]);
+  return json(res,201,{ticket:q.rows[0]});
+ }
+
  if(url.pathname.startsWith("/api/admin/") && url.pathname!=="/api/admin/setup" && (!user||user.role!=="admin"))return json(res,403,{error:"ADMIN_ONLY"});
  if(req.method==="POST" && url.pathname==="/api/admin/setup"){
   if(!process.env.ADMIN_SETUP_TOKEN)return json(res,503,{error:"ADMIN_SETUP_TOKEN_NOT_CONFIGURED"});
