@@ -445,6 +445,18 @@ async function handleApi(req,res,url){
   if(req.method==="GET"&&url.pathname==="/api/admin/orders"){
    const q=await pool.query("SELECT * FROM (SELECT o.id,o.user_id,o.phone_number,o.status,o.sale_price,o.created_at,u.email,u.phone,'السيرفر الأول' AS source FROM number_orders o JOIN users u ON u.id=o.user_id UNION ALL SELECT o.id,o.user_id,o.phone_number,o.status,o.sale_price,o.created_at,u.email,u.phone,'السيرفر الثاني' AS source FROM herosms_orders o JOIN users u ON u.id=o.user_id) all_orders ORDER BY created_at DESC LIMIT 300");return json(res,200,{orders:q.rows});
   }
+  if(req.method==="GET"&&url.pathname==="/api/admin/support-tickets"){
+   const q=await pool.query("SELECT t.id,t.user_id,t.subject,t.message,t.status,t.admin_reply,t.created_at,t.updated_at,u.email,u.phone FROM support_tickets t JOIN users u ON u.id=t.user_id ORDER BY CASE WHEN t.status='open' THEN 0 ELSE 1 END,t.created_at DESC LIMIT 200");return json(res,200,{tickets:q.rows});
+  }
+  const supportReplyPrefix="/api/admin/support-tickets/",supportReplySuffix="/reply";
+  if(req.method==="POST"&&url.pathname.startsWith(supportReplyPrefix)&&url.pathname.endsWith(supportReplySuffix)){
+   const ticketId=url.pathname.slice(supportReplyPrefix.length,-supportReplySuffix.length);
+   if(!/^\\d+$/.test(ticketId))return json(res,404,{error:"TICKET_NOT_FOUND"});
+   const b=await readBody(req),reply=String(b.reply||"").trim(),status=String(b.status||"answered");
+   if(reply.length<2||reply.length>2000||!["answered","closed"].includes(status))return json(res,400,{error:"اكتب رداً من حرفين إلى 2000 حرف."});
+   const q=await pool.query("UPDATE support_tickets SET admin_reply=$1,status=$2,updated_at=now() WHERE id=$3 RETURNING id,status,admin_reply",[reply,status,ticketId]);
+   if(!q.rowCount)return json(res,404,{error:"TICKET_NOT_FOUND"});return json(res,200,{ticket:q.rows[0]});
+  }
   if(req.method==="GET"&&url.pathname==="/api/admin/transactions"){
    const q=await pool.query("SELECT t.id,t.user_id,t.kind,t.amount,t.description,t.reference,t.created_at,u.email,u.phone FROM wallet_transactions t JOIN users u ON u.id=t.user_id ORDER BY t.created_at DESC LIMIT 150");return json(res,200,{transactions:q.rows});
   }
