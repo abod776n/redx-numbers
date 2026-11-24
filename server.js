@@ -93,7 +93,8 @@ async function heroRequest(method, endpoint, body){
  }finally{clearTimeout(timer);}
 }
 function heroErrorMessage(e){return e.name==="AbortError"?"انتهت مهلة الاتصال بسيرفر رقم اثنين.":String(e.message||"تعذر الاتصال بسيرفر رقم اثنين.");}
-\nasync function auth(req){
+
+async function auth(req){
  if(!pool) return null;
  const c=parseCookies(req.headers.cookie); if(!c.talabati_session) return null;
  const q=await pool.query("SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now()",[hash(c.talabati_session)]);
@@ -222,7 +223,8 @@ async function handleApi(req,res,url){
   await heroRequest("POST","/activations/"+encodeURIComponent(o.activation_id)+"/finish",{});
   await pool.query("UPDATE herosms_orders SET status='finished',updated_at=now() WHERE id=$1",[o.id]);return json(res,200,{status:"finished"});
  }
-\n if(req.method==="GET" && url.pathname==="/api/countries"){
+
+ if(req.method==="GET" && url.pathname==="/api/countries"){
   const service=url.searchParams.get("service")||"tg";if(!["tg","wa"].includes(service))return json(res,400,{error:"BAD_SERVICE"});
    const r=await provider({action:"available_countries",service});if(r.data?.status!=="ok"||!r.data.countries)return json(res,r.httpStatus,r.data);
    const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
