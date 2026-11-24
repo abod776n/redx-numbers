@@ -81,4 +81,36 @@
 
 <section class="dash-list-panel payment-history"><div class="list-heading"><div><h2>طلبات الشحن</h2><p>تابع حالة مراجعة حوالاتك</p></div><span class="list-mark">03</span></div><div id="payment-requests" class="dash-list-content">جارٍ التحميل...</div></section>
 <footer class="dash-footer"><span>© 2026 طلباتي نمبر</span><span>منصتك للأرقام الافتراضية</span></footer>
-</main></div><script src="/recharge.js"></script></body></html>
+</main></div><script src="/recharge.js"></script>
+<style>
+/* Premium dark inputs for direct top-up forms */
+#jeeb-topup .binance-topup-row,#binance-topup .binance-topup-row{gap:15px;margin-top:22px}
+#jeeb-topup .field-box,#binance-topup .field-box{gap:9px;min-width:0}
+#jeeb-topup .field-box label,#binance-topup .field-box label{display:block;color:#c4d0df;font-size:12px;font-weight:600}
+#jeeb-topup .field-box input,#binance-topup .field-box input{
+ display:block;width:100%;height:54px;min-width:0;padding:0 16px;
+ border:1px solid #3b5368;border-radius:14px;
+ background:linear-gradient(135deg,#0a1725,#101d2c);
+ color:#f3f7ff;-webkit-text-fill-color:#f3f7ff;
+ font-family:inherit;font-size:13px;font-weight:500;
+ outline:none;box-shadow:inset 0 1px 0 #ffffff08,0 5px 16px #0002;
+ transition:border-color .2s,box-shadow .2s,background .2s;
+ appearance:none;-webkit-appearance:none;
+}
+#jeeb-topup .field-box input::placeholder,#binance-topup .field-box input::placeholder{color:#73869c;-webkit-text-fill-color:#73869c;opacity:1}
+#jeeb-topup .field-box input:focus,#binance-topup .field-box input:focus{
+ border-color:#52d8b8;background:#0b1b29;
+ box-shadow:0 0 0 3px #35b7a822,0 8px 22px #0003;
+}
+#jeeb-topup .field-box input:-webkit-autofill,#binance-topup .field-box input:-webkit-autofill{
+ -webkit-box-shadow:0 0 0 1000px #0d1b29 inset!important;
+ -webkit-text-fill-color:#f3f7ff!important;caret-color:#fff;
+}
+#jeeb-topup .binance-topup-row .dash-buy,#binance-topup .binance-topup-row .dash-buy{min-height:54px;border-radius:14px}
+#jeeb-topup .dash-message,#binance-topup .dash-message{padding:10px 12px;border-radius:12px;background:#07152288;border:1px solid #ffffff0d;line-height:1.9}
+@media(max-width:600px){
+ #jeeb-topup .binance-topup-row,#binance-topup .binance-topup-row{grid-template-columns:1fr;gap:14px}
+ #jeeb-topup .field-box input,#binance-topup .field-box input{height:52px;font-size:12px}
+}
+</style>
+</body></html>
