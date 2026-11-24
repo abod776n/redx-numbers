@@ -196,18 +196,85 @@
     button.disabled = true;
     button.textContent = "جارٍ حجز الرقم من HEROSMS...";
     $("hero-message").textContent = "";
+    activeOrderId = null;
+    setModalState(
+      "جارٍ حجز رقمك",
+      "نرسل طلبك إلى السيرفر الثاني الآن. لا تغلق النافذة.",
+      "جارٍ إصدار الرقم",
+      "جارٍ الاتصال...",
+      "يتم التحقق من توفر الرقم وإصدار رقمك.",
+      "يرجى الانتظار وعدم الضغط على شراء مرة أخرى."
+    );
+    $("number-modal-icon").textContent = "✦";
+    $("number-modal-icon").style.background = "";
+    $("modal-check-code").disabled = true;
+    showNumberModal();
+
     try {
       const data = await request("/api/herosms/orders", {
         method: "POST",
         body: JSON.stringify({ service, country_code: offer.country_code })
       });
-      $("hero-message").textContent = data.status === "ok"
-        ? "تم حجز الرقم: " + data.number + " — تابع طلبك أدناه لاستلام الرمز."
-        : (data.message || "الطلب قيد المراجعة. لا تكرر الشراء.");
+
+      if (data.status === "ok" && data.order_id) {
+        activeOrderId = "hero:" + data.order_id;
+        setModalState(
+          "تم حجز الرقم بنجاح",
+          "مبروك! رقمك جاهز من السيرفر الثاني. يمكنك نسخه وانتظار رمز التفعيل هنا.",
+          data.number,
+          "بانتظار وصول الرسالة",
+          "سيظهر رمز OTP هنا فور استلامه من المزود.",
+          "احتفظ بالرقم حتى تنتهي من تفعيل حسابك، ولا تشارك رمز التفعيل مع أي شخص."
+        );
+        $("number-modal-icon").textContent = "✓";
+        $("number-modal-icon").style.background = "linear-gradient(145deg,#35d6a0,#168c82)";
+        $("modal-check-code").disabled = false;
+        $("hero-message").textContent = "تم حجز الرقم بنجاح.";
+        await checkActiveCode();
+      } else if (data.status === "uncertain" && data.order_id) {
+        activeOrderId = "hero:" + data.order_id;
+        setModalState(
+          "طلبك قيد المراجعة",
+          "تم تسجيل الطلب وننتظر تأكيد المزود.",
+          "قيد التجهيز",
+          "قيد المراجعة",
+          data.message || "لا تكرر الشراء حتى لا يتم خصم المبلغ مرتين.",
+          "يمكنك فحص حالة الطلب من هذه النافذة بعد قليل."
+        );
+        $("number-modal-icon").textContent = "…";
+        $("modal-check-code").disabled = false;
+        $("hero-message").textContent = data.message || "الطلب قيد المراجعة.";
+      } else {
+        setModalState(
+          "تعذر تأكيد حجز الرقم",
+          "لم تصلنا نتيجة نهائية من السيرفر الثاني.",
+          "—",
+          "—",
+          data.message || "يرجى مراجعة طلباتك قبل إعادة المحاولة.",
+          "لا تحاول الشراء مرة أخرى إذا كان الطلب قيد المراجعة."
+        );
+        $("number-modal-icon").textContent = "!";
+        $("modal-check-code").disabled = true;
+        $("hero-message").textContent = data.message || "تعذر تأكيد الطلب.";
+      }
+
       await loadOrders();
       if (typeof window.load === "function") await window.load();
     } catch (error) {
+      setModalState(
+        "تعذر إكمال الطلب",
+        "لم يتم تأكيد حجز الرقم.",
+        "—",
+        "—",
+        error.message,
+        "راجع طلباتك ورصيد محفظتك قبل إعادة المحاولة."
+      );
+      $("number-modal-icon").textContent = "!";
+      $("number-modal-icon").style.background = "linear-gradient(145deg,#e8a34b,#b94b67)";
+      $("modal-check-code").disabled = true;
       $("hero-message").textContent = error.message;
+      await loadOrders();
+      if (typeof window.load === "function") await window.load();
     } finally {
       button.disabled = false;
       button.innerHTML = 'شراء من سيرفر رقم اثنين <span>←</span>';
@@ -239,5 +306,6 @@
     }
   });
 
+  window.addEventListener("hero-orders-refresh", loadOrders);
   loadOrders();
 })();
