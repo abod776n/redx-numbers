@@ -37,6 +37,23 @@
 .footer-note{text-align:center;color:#64758f;font-size:9px;padding:35px 0 0}
 @media(max-width:1000px){.admin-shell{grid-template-columns:210px minmax(0,1fr)}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.payment-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.admin-shell{display:block}.sidebar{position:relative;height:auto;padding:14px 16px;border-left:0;border-bottom:1px solid var(--line)}.brand{padding:0 2px 13px;border:0}.side-label{display:none}.side-nav{display:flex;overflow:auto;gap:6px;padding-top:12px}.side-nav a{white-space:nowrap;padding:9px 11px;font-size:9px}.side-nav i{font-size:13px}.side-bottom{display:none}.main{padding:22px 14px 40px}.topbar{align-items:flex-start}.topbar h1{font-size:18px}.admin-chip{font-size:0;padding:6px}.admin-avatar{font-size:13px}.stats{gap:9px}.stat{padding:14px;min-height:105px}.stat strong{font-size:21px}.panel{padding:16px}.payment-fields{grid-template-columns:1fr}.row input{width:100%;flex:1 1 100%}.row .btn{width:100%}#users,#orders{grid-template-columns:1fr}}
+
+/* Admin command-center enhancements */
+.stats{grid-template-columns:repeat(auto-fit,minmax(185px,1fr))}
+.search-input{width:100%;max-width:460px;min-height:44px;padding:12px 14px;border-radius:12px;border:1px solid #30435f;background:#091424;color:#fff;outline:none;font:inherit;font-size:11px;margin:6px 0 14px}
+.search-input:focus{border-color:#8b7cff;box-shadow:0 0 0 3px #8b7cff20}
+.data-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.data-grid .item{margin:0}
+.item-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.pill{display:inline-flex;padding:4px 8px;border-radius:99px;background:#ffffff0d;border:1px solid #ffffff16;color:#bdc9dc;font-size:9px}
+.pill.good{color:#65e0b1;border-color:#35bd8b44;background:#35bd8b14}
+.pill.warn{color:#ffd27d;border-color:#e8ad5d44;background:#e8ad5d14}
+.pill.bad{color:#ff9aaa;border-color:#ff718544;background:#ff718514}
+.filter-row{display:flex;gap:7px;overflow:auto;padding:0 0 13px}
+.filter-chip{white-space:nowrap;border:1px solid #30435f;border-radius:99px;background:#0b1729;color:#aebbd0;padding:8px 12px;font:inherit;font-size:9px;cursor:pointer}
+.filter-chip.active{background:#887aff22;border-color:#887aff;color:#e2dcff}
+.stat strong{font-variant-numeric:tabular-nums}
+@media(max-width:700px){.data-grid{grid-template-columns:1fr}.top-actions{flex-direction:column-reverse;align-items:flex-end}.top-actions .btn{font-size:9px;min-height:36px;padding:8px 10px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style></head>
 <body><div class="admin-shell">
 <aside class="sidebar">
@@ -49,11 +66,12 @@
   <a href="#reviews"><i>✓</i>مراجعة الحوالات</a>
   <a href="#customers-section"><i>♙</i>العملاء</a>
   <a href="#orders-section"><i>▤</i>الطلبات</a>
+  <a href="#transactions-section"><i>↕</i>سجل المحفظة</a>
  </nav>
  <div class="side-bottom"><a href="/" target="_blank">↗ فتح المتجر</a><button class="logout" id="logout">تسجيل الخروج</button></div>
 </aside>
 <main class="main">
- <header class="topbar"><div><h1>لوحة التحكم</h1><p>إدارة منصة طلباتي نمبر ومتابعة العمليات من مكان واحد.</p></div><div class="top-actions"><div class="admin-chip"><span class="admin-avatar">♙</span>مدير النظام</div></div></header>
+ <header class="topbar"><div><h1>لوحة التحكم</h1><p>إدارة منصة طلباتي نمبر ومتابعة العمليات من مكان واحد.</p></div><div class="top-actions"><button class="btn" id="refresh-admin">↻ تحديث البيانات</button><div class="admin-chip"><span class="admin-avatar">♙</span>مدير النظام</div></div></header>
  <p id="notice" class="notice">جارٍ التحقق من صلاحيات المدير...</p>
  <section id="overview"><div class="section-title"><div><h2>نظرة عامة</h2><p>ملخص سريع لأداء المنصة</p></div></div>
   <div class="stats">
@@ -61,6 +79,9 @@
    <div class="stat" style="--glow:#41cbd7"><div class="stat-top"><span>إجمالي الطلبات</span><span class="stat-icon">▤</span></div><strong id="orders-count">—</strong><small>طلبات الأرقام في المنصة</small></div>
    <div class="stat" style="--glow:#3bd6a0"><div class="stat-top"><span>المبيعات المكتملة</span><span class="stat-icon">↗</span></div><strong id="sales">—</strong><small>إجمالي المبيعات بالدولار</small></div>
    <div class="stat" style="--glow:#e8ad5d"><div class="stat-top"><span>رصيد المزوّد</span><span class="stat-icon">◉</span></div><strong id="provider">—</strong><small>الرصيد المتاح لدى مزود الأرقام</small></div>
+   <div class="stat" style="--glow:#ff7185"><div class="stat-top"><span>طلبات تحتاج متابعة</span><span class="stat-icon">◷</span></div><strong id="pending-count">—</strong><small>طلبات قيد الانتظار أو المراجعة</small></div>
+   <div class="stat" style="--glow:#42d5d0"><div class="stat-top"><span>مبيعات اليوم</span><span class="stat-icon">☀</span></div><strong id="today-sales">—</strong><small>المبيعات المكتملة اليوم بالدولار</small></div>
+   <div class="stat" style="--glow:#a78bfa"><div class="stat-top"><span>أرصدة العملاء</span><span class="stat-icon">◈</span></div><strong id="wallet-total">—</strong><small>إجمالي أرصدة المحافظ بالدولار</small></div>
   </div></section>
  <section class="panel"><h2>هامش الربح</h2><p class="muted">حدد نسبة الزيادة على سعر المزود قبل عرض السعر على العملاء.</p><div class="row"><input id="markup" type="text" inputmode="decimal" autocomplete="off" value="10" aria-label="نسبة هامش الربح"><button class="btn" id="save-markup">حفظ النسبة %</button></div></section>
  <section id="wallet" class="panel"><h2>شحن محفظة عميل</h2><p class="muted">أضف رصيداً يدوياً إلى حساب العميل باستخدام بريده الإلكتروني بعد التحقق من استلام المبلغ.</p><div class="row"><input id="customer-email" type="email" autocomplete="email" placeholder="البريد الإلكتروني للعميل"><input id="amount" type="number" min="0.01" step="0.01" placeholder="المبلغ بالدولار"><button class="btn" id="credit">＋ إضافة الرصيد</button></div></section>
@@ -73,8 +94,9 @@
   <div><button class="btn" id="save-methods">حفظ بيانات الدفع</button></div>
  </div></section>
  <section id="reviews" class="panel"><h2>طلبات الدفع اليدوية</h2><p class="muted">راجع بيانات التحويل والإيصال قبل قبول الطلب. قبول الطلب يضيف الرصيد بالدولار إلى محفظة العميل.</p><div id="payment-review">جارٍ تحميل الطلبات...</div></section>
- <section id="customers-section" class="panel"><h2>العملاء</h2><div id="users">—</div></section>
- <section id="orders-section" class="panel"><h2>آخر الطلبات</h2><div id="orders">—</div></section>
+ <section id="customers-section" class="panel"><div class="section-title"><div><h2>إدارة العملاء</h2><p>ابحث بالبريد أو رقم الهاتف أو رقم العميل</p></div></div><input id="user-search" class="search-input" type="search" placeholder="ابحث عن عميل..." autocomplete="off"><div id="users" class="data-grid">—</div></section>
+ <section id="orders-section" class="panel"><div class="section-title"><div><h2>كل طلبات الأرقام</h2><p>طلبات السيرفر الأول والثاني في قائمة موحدة</p></div></div><input id="order-search" class="search-input" type="search" placeholder="ابحث برقم الطلب أو الهاتف أو العميل..." autocomplete="off"><div class="filter-row"><button class="filter-chip active" data-order-filter="all">الكل</button><button class="filter-chip" data-order-filter="waiting">بانتظار الكود</button><button class="filter-chip" data-order-filter="done">مكتمل</button><button class="filter-chip" data-order-filter="refunded">مسترد</button><button class="filter-chip" data-order-filter="uncertain">قيد المراجعة</button></div><div id="orders" class="data-grid">—</div></section>
+ <section id="transactions-section" class="panel"><div class="section-title"><div><h2>سجل حركة المحافظ</h2><p>آخر عمليات الشحن والخصم والاسترداد لكل العملاء</p></div></div><input id="transaction-search" class="search-input" type="search" placeholder="ابحث باسم العميل أو نوع العملية..." autocomplete="off"><div id="transactions" class="data-grid">جارٍ تحميل السجل...</div></section>
  <div class="footer-note">طلباتي نمبر · لوحة الإدارة © 2026</div>
 </main></div><script src="/admin.js"></script>
 <script>
