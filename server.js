@@ -223,6 +223,7 @@ async function handleApi(req,res,url){
  if(req.method==="GET"&&url.pathname==="/api/payment-methods"){
   const q=await pool.query("SELECT value FROM settings WHERE key='payment_methods'");
   let methods={};try{methods=JSON.parse(q.rows[0]?.value||"{}");}catch{}
+  if(!methods.jeeb)methods.jeeb="محفظة جيب\nرقم المحفظة: 776531367\nاسم المستفيد: عبدالملك عارف محمد احمد\nحوّل المبلغ ثم أدخل رقم العملية في طلب الشحن.";
   return json(res,200,{exchange_rate:560,methods});
  }
  if(req.method==="POST"&&url.pathname==="/api/payment-requests"){
