@@ -97,7 +97,10 @@ async function handleApi(req,res,url){
  }
  if(req.method==="GET" && url.pathname==="/api/countries"){
   const service=url.searchParams.get("service")||"tg";if(!["tg","wa"].includes(service))return json(res,400,{error:"BAD_SERVICE"});
-  const r=await provider({action:"available_countries",service});return json(res,r.httpStatus,r.data);
+   const r=await provider({action:"available_countries",service});if(r.data?.status!=="ok"||!r.data.countries)return json(res,r.httpStatus,r.data);
+   const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
+   const countries=Object.fromEntries(Object.entries(r.data.countries).map(([code,item])=>{const providerPrice=Number(item.price)||0;const salePrice=Number((providerPrice*(1+markup/100)).toFixed(4));return [code,{...item,provider_price:providerPrice,sale_price:salePrice,price:salePrice}]}));
+   return json(res,200,{...r.data,markup_percent:markup,countries});
  }
  if(req.method==="GET" && url.pathname==="/api/orders"){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
@@ -109,7 +112,7 @@ async function handleApi(req,res,url){
   const b=await readBody(req);const service=b.service==="wa"?"wa":"tg";const country=String(b.country_code||"");if(!country)return json(res,400,{error:"MISSING_COUNTRY"});
   const countries=await provider({action:"available_countries",service});if(countries.data.status!=="ok")return json(res,countries.httpStatus,countries.data);
   const entry=countries.data.countries?.[country];if(!entry||Number(entry.qty)<=0)return json(res,404,{error:"COUNTRY_UNAVAILABLE"});
-  const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");const markup=Math.min(50,Math.max(0,Number(setting.rows[0]?.value||10)));
+  const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
   const cost=Number(entry.price);const sale=Number((cost*(1+markup/100)).toFixed(4));
   const client=await pool.connect();
   try{
