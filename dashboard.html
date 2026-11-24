@@ -46,7 +46,7 @@
 <button type="button" class="auto-topup-tile jeeb-auto" data-auto-topup="jeeb"><span>📲</span><b>جيب</b><small>ريال يمني</small></button>
 </div>
 </section>
-<section class="purchase-panel binance-panel" id="binance-topup" class="auto-topup-panel" hidden>
+<section class="purchase-panel binance-panel auto-topup-panel" id="binance-topup" hidden>
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · Binance Pay</div><h2>اشحن رصيدك عبر Binance ID</h2><p>حوّل USDT إلى حسابنا، ثم أرسل رقم المعاملة. ستراجع الإدارة التحويل وتضيف الرصيد بعد التأكد.</p></div><div class="purchase-symbol">₿</div></div>
 <div class="binance-receiver"><span>Binance Pay ID الخاص بنا</span><strong id="binance-receiver-id">1276815766</strong><button type="button" id="copy-binance-id">نسخ الرقم</button></div>
 <div class="binance-topup-row"><div class="field-box"><label for="binance-amount">مبلغ التحويل (USDT)</label><input id="binance-amount" type="number" min="1" max="10000" step="0.01" placeholder="مثال: 10"></div><div class="field-box"><label for="binance-transaction-id">رقم المعاملة (Transaction ID)</label><input id="binance-transaction-id" type="text" maxlength="100" placeholder="الصق رقم المعاملة هنا"></div></div>
@@ -54,7 +54,7 @@
 <p id="binance-message" class="dash-message" role="status">سيظهر طلبك قيد المراجعة. لن يُضاف الرصيد إلا بعد تأكيد الإدارة وصول التحويل. رقم المعاملة لا يمكن إرساله مرتين.</p>
 <div id="binance-history" class="binance-history"></div>
 </section>
-<section class="purchase-panel binance-panel" id="jeeb-topup" class="auto-topup-panel" hidden style="border-color:#35b7a855;background:radial-gradient(ellipse at 95% 0%,#35b7a822,transparent 45%),linear-gradient(145deg,#122b2a,#0b1722)">
+<section class="purchase-panel binance-panel auto-topup-panel" id="jeeb-topup" hidden style="border-color:#35b7a855;background:radial-gradient(ellipse at 95% 0%,#35b7a822,transparent 45%),linear-gradient(145deg,#122b2a,#0b1722)">
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · JE E B</div><h2>اشحن رصيدك عبر محفظة جيب</h2><p>حوّل المبلغ إلى محفظة جيب، ثم أدخل رقم العملية لإرسال طلب الشحن للمراجعة.</p></div><div class="purchase-symbol">📲</div></div>
 <div class="binance-receiver" style="border-color:#35b7a855"><span>رقم محفظة جيب</span><strong id="jeeb-receiver-id" style="color:#6fe2c4">776531367</strong><button type="button" id="copy-jeeb-id" style="border-color:#35b7a855;background:#35b7a81a;color:#9af0d8">نسخ الرقم</button></div>
 <div class="binance-topup-row"><div class="field-box"><label for="jeeb-amount">مبلغ التحويل (ريال يمني)</label><input id="jeeb-amount" type="number" min="560" max="100000000" step="1" placeholder="مثال: 5600"></div><div class="field-box"><label for="jeeb-transaction-id">رقم العملية</label><input id="jeeb-transaction-id" type="text" maxlength="120" placeholder="أدخل رقم حوالة جيب"></div></div>
