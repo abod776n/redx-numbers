@@ -146,7 +146,7 @@ async function handleApi(req,res,url){
   const r=await provider({action:"balance"});return json(res,r.httpStatus,r.data);
  }
  if(req.method==="GET" && url.pathname==="/api/countries"){
-  const service=url.searchParams.get("service")||"tg";if(!["tg","wa"].includes(service))return json(res,400,{error:"BAD_SERVICE"});
+  const service=url.searchParams.get("service")||"telegram";if(!["telegram","readywa","closed","premium","tg","wa"].includes(service))return json(res,400,{error:"BAD_SERVICE"});
    const r=await provider({action:"available_countries",service});if(r.data?.status!=="ok"||!r.data.countries)return json(res,r.httpStatus,r.data);
    const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
    const countries=Object.fromEntries(Object.entries(r.data.countries).map(([code,item])=>{const providerPrice=Number(item.price)||0;const salePrice=Number((providerPrice*(1+markup/100)).toFixed(4));return [code,{...item,price:salePrice}]}));
@@ -159,7 +159,7 @@ async function handleApi(req,res,url){
  if(req.method==="POST" && url.pathname==="/api/orders"){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
   if(!rateLimit(req,"buy",5))return json(res,429,{error:"RATE_LIMITED"});
-  const b=await readBody(req);const service=b.service==="wa"?"wa":"tg";const country=String(b.country_code||"");if(!country)return json(res,400,{error:"MISSING_COUNTRY"});
+  const b=await readBody(req);const service=["readywa","closed","premium","telegram","wa","tg"].includes(String(b.service))?String(b.service):"telegram";const country=String(b.country_code||"");if(!country)return json(res,400,{error:"MISSING_COUNTRY"});
   const countries=await provider({action:"available_countries",service});if(countries.data.status!=="ok")return json(res,countries.httpStatus,countries.data);
   const entry=countries.data.countries?.[country];if(!entry||Number(entry.qty)<=0)return json(res,404,{error:"COUNTRY_UNAVAILABLE"});
   const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
