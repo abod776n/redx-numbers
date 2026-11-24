@@ -38,9 +38,65 @@ async function initDb(){
  INSERT INTO settings(key,value) VALUES ('markup_percent','10') ON CONFLICT(key) DO NOTHING;
  `);
 }
-// Provider one removed. A new provider adapter will be added after receiving its API documentation.
-async function provider(){
- throw Object.assign(new Error("لم يتم ربط مزود أرقام حالياً. سيتم تفعيل الخدمة بعد إضافة المزود الجديد."),{status:503});
+// ReadyWA Reseller API adapter. Credentials are read only from Railway environment variables.
+const READYWA_BASE = (process.env.READYWA_API_BASE || "http://38.60.250.36:8888/api/v1").replace(/\\/$/, "");
+async function provider(args){
+ const apiKey=process.env.SERVICES_API_KEY || process.env.READYWA_API_KEY;
+ if(!apiKey) throw Object.assign(new Error("مفتاح مزود الأرقام غير مضبوط في إعدادات الموقع."),{status:503});
+ const call=async(method,route,body)=>{
+  const response=await fetch(READYWA_BASE+route,{method,headers:{"Authorization":"Bearer "+apiKey,"Accept":"application/json","Content-Type":"application/json"},...(body===undefined?{}:{body:JSON.stringify(body)}),signal:AbortSignal.timeout(20000)});
+  let data;try{data=await response.json();}catch{data={ok:false,message:"استجابة غير صالحة من المزود"};}
+  if(!response.ok || data.ok===false){
+   const code=data.code||data.error||"PROVIDER_ERROR";
+   const message=data.message||data.error_description||"تعذر تنفيذ الطلب لدى المزود";
+   return {httpStatus:response.status||502,data:{status:"error",code,message,raw:data}};
+  }
+  return {httpStatus:response.status,data};
+ };
+ if(args.action==="balance"){
+  const r=await call("GET","/balance");
+  if(r.data.status==="error")return r;
+  return {httpStatus:r.httpStatus,data:{status:"ok",balance:Number(r.data.data?.balance_usd||0),currency:"USD"}};
+ }
+ if(args.action==="available_countries"){
+  const sectionMap={wa:"readywa",tg:"telegram",readywa:"readywa",closed:"closed",premium:"premium",telegram:"telegram"};
+  const section=sectionMap[args.service]||"readywa";
+  const r=await call("GET","/services?section="+encodeURIComponent(section));
+  if(r.data.status==="error")return r;
+  const list=r.data.data?.services;
+  if(!Array.isArray(list))return {httpStatus:502,data:{status:"error",code:"BAD_SERVICES_RESPONSE",message:"لم يرجع المزود قائمة خدمات صالحة."}};
+  const countries={};
+  for(const item of list){
+   const id=String(item.service_id||"");if(!id)continue;
+   countries[id]={service_id:id,section:item.section||section,name:item.name||id,name_ar:item.name||id,dial_code:item.dial_code||"",price:Number(item.price_usd)||0,qty:Number(item.stock)||0,available:!!item.available};
+  }
+  return {httpStatus:r.httpStatus,data:{status:"ok",countries}};
+ }
+ if(args.action==="getNumber"){
+  const r=await call("POST","/orders",{service_id:String(args.country_code||"")});
+  if(r.data.status==="error")return r;
+  const d=r.data.data||{};
+  return {httpStatus:r.httpStatus,data:{status:"ok",order_id:d.order_id,Number:d.phone_number,price:d.price_usd,expires_in:86400,raw:d}};
+ }
+ if(args.action==="getCode"){
+  const r=await call("POST","/orders/"+encodeURIComponent(String(args.order_id))+"/code",args.new_code?{new_code:true}:undefined);
+  if(r.data.status==="error"){
+   const code=r.data.code;
+   if(code==="ORDER_NOT_FOUND")return {httpStatus:r.httpStatus,data:{status:"error",code:"ORDER_NOT_FOUND",message:r.data.message}};
+   return r;
+  }
+  const d=r.data.data||{};
+  if(d.code)return {httpStatus:r.httpStatus,data:{status:"ok",code:d.code,pass:"",phone_number:d.phone_number}};
+  if(["expired","cancelled","refunded","failed"].includes(String(d.status||"").toLowerCase()))return {httpStatus:r.httpStatus,data:{status:"error",code:"EXPIRED",message:d.status}};
+  return {httpStatus:r.httpStatus,data:{status:"waiting",expires_in:d.expires_in||0}};
+ }
+ if(args.action==="cancel"){
+  return await call("POST","/orders/"+encodeURIComponent(String(args.order_id))+"/cancel");
+ }
+ if(args.action==="finish"){
+  return await call("POST","/orders/"+encodeURIComponent(String(args.order_id))+"/finish");
+ }
+ throw Object.assign(new Error("إجراء غير مدعوم في مزود الأرقام."),{status:400});
 }
 async function auth(req){
  if(!pool) return null;
