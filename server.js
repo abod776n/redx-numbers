@@ -196,6 +196,19 @@ async function handleApi(req,res,url){
   return json(res,r.httpStatus,{status:r.data.status||"waiting",expires_in:r.data.expires_in});
  }
 
+ const cancelMatch=url.pathname.match(/^\/api\/orders\/(\d+)\/cancel$/);
+ if(req.method==="POST"&&cancelMatch){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const q=await pool.query("SELECT * FROM number_orders WHERE id=$1 AND user_id=$2",[cancelMatch[1],user.id]);const o=q.rows[0];if(!o)return json(res,404,{error:"ORDER_NOT_FOUND"});
+  if(o.status==="refunded")return json(res,200,{status:"refunded",message:"تم استرداد قيمة الطلب مسبقاً."});
+  if(!["waiting","done"].includes(o.status)||!o.provider_order_id)return json(res,409,{error:"CANNOT_CANCEL",message:"لا يمكن إلغاء هذا الطلب من حالته الحالية."});
+  const r=await provider({action:"cancel",order_id:o.provider_order_id});
+  const providerStatus=String(r.data?.status||"").toLowerCase();
+  const confirmed=r.httpStatus>=200&&r.httpStatus<300&&(r.data?.success===true||["cancelled","canceled","refunded","success","ok"].includes(providerStatus));
+  if(!confirmed)return json(res,409,{error:"CANCEL_NOT_CONFIRMED",message:r.data?.message||"لم يؤكد المزود إلغاء الطلب؛ لم يتم رد الرصيد. تواصل مع الدعم للمراجعة."});
+  const c=await pool.connect();try{await c.query("BEGIN");const changed=await c.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND user_id=$2 AND status IN ('waiting','done') RETURNING user_id,sale_price",[o.id,user.id]);if(!changed.rowCount){await c.query("ROLLBACK");return json(res,409,{error:"ALREADY_PROCESSED"});}await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[changed.rows[0].sale_price,changed.rows[0].user_id]);await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد بعد إلغاء طلب الرقم',$3)",[changed.rows[0].user_id,changed.rows[0].sale_price,"order:"+o.id]);await c.query("COMMIT");return json(res,200,{status:"refunded",message:"تم إلغاء الطلب وإعادة المبلغ إلى محفظتك."});}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
+ }
+
  if(req.method==="GET"&&url.pathname==="/api/payment-methods"){
   const q=await pool.query("SELECT value FROM settings WHERE key='payment_methods'");
   let methods={};try{methods=JSON.parse(q.rows[0]?.value||"{}");}catch{}
