@@ -67,7 +67,7 @@ async function loadCustomerExtras(){
   $("customer-spent-total").textContent="$"+spent.toFixed(2);
   $("customer-active-count").textContent=String(all.filter(function(x){return ["waiting","processing","uncertain"].includes(x.status);}).length);
   $("customer-tier").textContent=spent>=100?"VIP":spent>=50?"ذهبي":spent>=20?"فضي":"عضو جديد";
-  $("customer-tier-note").textContent="مستوى تعريفي حسب إجمالي مشترياتك.";
+  $("customer-tier-note").textContent="مستوى نشاط تعريفي حسب مشترياتك المسجلة في سجل المحفظة.";
   const orderBox=$("orders");orderBox.replaceChildren();
   const labels={waiting:"بانتظار الكود",done:"وصل الكود",finished:"مكتمل",refunded:"مسترد",uncertain:"قيد المراجعة",processing:"قيد التنفيذ"};
   all.sort(function(a,b){return new Date(b.created_at)-new Date(a.created_at);}).forEach(function(order){
