@@ -31,6 +31,9 @@ async function initDb(){
  CREATE TABLE IF NOT EXISTS wallet_transactions(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),kind TEXT NOT NULL,amount NUMERIC(14,4) NOT NULL,description TEXT NOT NULL,reference TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
  CREATE TABLE IF NOT EXISTS number_orders(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),provider_order_id TEXT,service TEXT NOT NULL,country_code TEXT NOT NULL,country_name TEXT,phone_number TEXT,provider_price NUMERIC(14,4),sale_price NUMERIC(14,4),status TEXT NOT NULL,code TEXT,passcode TEXT,expires_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
  CREATE INDEX IF NOT EXISTS number_orders_user_idx ON number_orders(user_id,created_at DESC);
+
+ CREATE TABLE IF NOT EXISTS herosms_orders(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),activation_id TEXT,service TEXT NOT NULL,country_code TEXT NOT NULL,country_name TEXT,phone_number TEXT,provider_price NUMERIC(14,4),sale_price NUMERIC(14,4),status TEXT NOT NULL,code TEXT,sms_text TEXT,expires_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
+ CREATE INDEX IF NOT EXISTS herosms_orders_user_idx ON herosms_orders(user_id,created_at DESC);
  CREATE TABLE IF NOT EXISTS payment_requests(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),method TEXT NOT NULL,currency TEXT NOT NULL CHECK(currency IN ('USD','YER')),amount_entered NUMERIC(14,2) NOT NULL,amount_usd NUMERIC(14,4) NOT NULL,amount_yer NUMERIC(16,2) NOT NULL,sender_name TEXT NOT NULL,reference TEXT NOT NULL,proof_data TEXT,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),admin_note TEXT,reviewed_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
  CREATE INDEX IF NOT EXISTS payment_requests_user_idx ON payment_requests(user_id,created_at DESC);
  CREATE TABLE IF NOT EXISTS binance_payments(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),merchant_trade_no TEXT UNIQUE NOT NULL,prepay_id TEXT,transaction_id TEXT UNIQUE,amount_usdt NUMERIC(14,8) NOT NULL,status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING','PAID','CLOSED')),checkout_url TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),paid_at TIMESTAMPTZ);
@@ -76,7 +79,21 @@ async function provider(params){
   return {httpStatus:r.status,data};
  }finally{clearTimeout(t);}
 }
-async function auth(req){
+
+// Independent HEROSMS integration. It never calls the original servicesapi.tech provider.
+async function heroRequest(method, endpoint, body){
+ const key=process.env.HEROSMS_API_KEY;
+ if(!key) throw Object.assign(new Error("مفتاح HEROSMS غير مضبوط في إعدادات الاستضافة."),{status:503});
+ const ac=new AbortController();const timer=setTimeout(()=>ac.abort(),20000);
+ try{
+  const r=await fetch("https://hero-sms.com/api/v1"+endpoint,{method,headers:{"Authorization":"ApiKey "+key,"Accept":"application/json","Content-Type":"application/json"},...(body?{body:JSON.stringify(body)}:{}),signal:ac.signal});
+  const raw=await r.text();let data={};try{data=raw?JSON.parse(raw):{};}catch{data={message:raw.slice(0,300)};}
+  if(!r.ok)throw Object.assign(new Error(String(data.message||data.error||data.detail||("HEROSMS_HTTP_"+r.status)).slice(0,300)),{status:r.status>=500?502:400,providerStatus:r.status});
+  return {status:r.status,data};
+ }finally{clearTimeout(timer);}
+}
+function heroErrorMessage(e){return e.name==="AbortError"?"انتهت مهلة الاتصال بسيرفر رقم اثنين.":String(e.message||"تعذر الاتصال بسيرفر رقم اثنين.");}
+\nasync function auth(req){
  if(!pool) return null;
  const c=parseCookies(req.headers.cookie); if(!c.talabati_session) return null;
  const q=await pool.query("SELECT u.* FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.expires_at>now()",[hash(c.talabati_session)]);
@@ -123,7 +140,89 @@ async function handleApi(req,res,url){
   if(!user||user.role!=="admin")return json(res,403,{error:"ADMIN_ONLY"});
   const r=await provider({action:"balance"});return json(res,r.httpStatus,r.data);
  }
- if(req.method==="GET" && url.pathname==="/api/countries"){
+
+ // HEROSMS offers, orders and OTP are isolated from the original provider.
+ if(req.method==="GET" && url.pathname==="/api/herosms/offers"){
+  const service=String(url.searchParams.get("service")||"wa").toLowerCase();
+  if(!/^[a-zA-Z]{2,4}$/.test(service))return json(res,400,{error:"BAD_SERVICE"});
+  const result=await heroRequest("GET","/activations/offers/sms?services="+encodeURIComponent(service));
+  const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");
+  const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
+  const rows=result.data?.data?.[service]||{};
+  const offers=Object.entries(rows).map(([country,item])=>{const base=Number(item?.prices?.default??item?.prices?.retail??item?.prices?.min??0);const count=Number(item?.counts?.total??0);return {country_code:String(country),country_name:"دولة رقم "+country,price:Number((base*(1+markup/100)).toFixed(4)),provider_price:base,qty:count,available:count>0};}).filter(x=>x.price>0).sort((a,b)=>a.price-b.price);
+  return json(res,200,{provider:"herosms",service,offers});
+ }
+ if(req.method==="GET" && url.pathname==="/api/herosms/orders"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const q=await pool.query("SELECT id,activation_id,service,country_code,country_name,phone_number,sale_price,status,code,sms_text,expires_at,created_at FROM herosms_orders WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100",[user.id]);
+  return json(res,200,{orders:q.rows});
+ }
+ if(req.method==="POST" && url.pathname==="/api/herosms/orders"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  if(!rateLimit(req,"herosms-buy",5))return json(res,429,{error:"RATE_LIMITED"});
+  const b=await readBody(req),service=String(b.service||"wa").toLowerCase(),country=String(b.country_code||"");
+  if(!/^[a-zA-Z]{2,4}$/.test(service)||!/^[0-9]{1,3}$/.test(country))return json(res,400,{error:"اختر الخدمة والدولة بشكل صحيح."});
+  const offers=await heroRequest("GET","/activations/offers/sms?services="+encodeURIComponent(service)+"&countries="+encodeURIComponent(country));
+  const item=offers.data?.data?.[service]?.[country];const cost=Number(item?.prices?.default??item?.prices?.retail??item?.prices?.min??0);const qty=Number(item?.counts?.total??0);
+  if(!cost||qty<1)return json(res,404,{error:"لا توجد أرقام متاحة لهذه الدولة على سيرفر رقم اثنين."});
+  const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");
+  const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10))),sale=Number((cost*(1+markup/100)).toFixed(4));
+  const client=await pool.connect();let localId;
+  try{
+   await client.query("BEGIN");const lock=await client.query("SELECT wallet_balance FROM users WHERE id=$1 FOR UPDATE",[user.id]);
+   if(Number(lock.rows[0]?.wallet_balance||0)<sale){await client.query("ROLLBACK");return json(res,402,{error:"INSUFFICIENT_WALLET",required:sale,balance:Number(lock.rows[0]?.wallet_balance||0)});}
+   await client.query("UPDATE users SET wallet_balance=wallet_balance-$1 WHERE id=$2",[sale,user.id]);
+   const ins=await client.query("INSERT INTO herosms_orders(user_id,service,country_code,country_name,provider_price,sale_price,status) VALUES($1,$2,$3,$4,$5,$6,'processing') RETURNING id",[user.id,service,country,"دولة رقم "+country,cost,sale]);localId=ins.rows[0].id;
+   await client.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'debit',$2,$3,$4)",[user.id,sale,"حجز رقم من سيرفر رقم اثنين","herosms:"+localId]);
+   await client.query("COMMIT");
+  }catch(e){try{await client.query("ROLLBACK");}catch{}throw e;}finally{client.release();}
+  let bought;
+  try{bought=await heroRequest("POST","/activations",{service,country:Number(country),amount:1,verificationType:"sms",maxPrice:cost});}
+  catch(e){
+   // Provider errors are definitive only when a normal HTTP response was received.
+   if(e.providerStatus){const cx=await pool.connect();try{await cx.query("BEGIN");await cx.query("UPDATE herosms_orders SET status='refunded',updated_at=now() WHERE id=$1",[localId]);await cx.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[sale,user.id]);await cx.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد طلب فاشل من سيرفر رقم اثنين',$3)",[user.id,sale,"herosms:"+localId]);await cx.query("COMMIT");}catch(x){await cx.query("ROLLBACK");throw x;}finally{cx.release();}return json(res,502,{error:heroErrorMessage(e)});}
+   await pool.query("UPDATE herosms_orders SET status='uncertain',updated_at=now() WHERE id=$1",[localId]);return json(res,202,{status:"uncertain",order_id:localId,message:"الشراء قيد المراجعة؛ لا تكرر الطلب."});
+  }
+  const raw=bought.data?.data;const activation=Array.isArray(raw)?raw[0]:(raw?.activations?.[0]||raw);
+  const activationId=activation?.id??activation?.activationId,phone=activation?.phone??activation?.phoneNumber;
+  if(!activationId||!phone){await pool.query("UPDATE herosms_orders SET status='uncertain',updated_at=now() WHERE id=$1",[localId]);return json(res,202,{status:"uncertain",order_id:localId,message:"استلمنا رد شراء غير مكتمل من المزود؛ الطلب قيد المراجعة ولا تعاود الشراء."});}
+  const expiry=activation?.expiredAt?new Date(activation.expiredAt):null;
+  await pool.query("UPDATE herosms_orders SET activation_id=$1,phone_number=$2,status='waiting',expires_at=$3,updated_at=now() WHERE id=$4",[String(activationId),String(phone),expiry,localId]);
+  return json(res,201,{status:"ok",order_id:localId,number:String(phone),price:sale,expires_at:expiry});
+ }
+ const heroCodeMatch=url.pathname.match(/^\/api\/herosms\/orders\/(\d+)\/code$/);
+ if(req.method==="GET"&&heroCodeMatch){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const q=await pool.query("SELECT * FROM herosms_orders WHERE id=$1 AND user_id=$2",[heroCodeMatch[1],user.id]),o=q.rows[0];
+  if(!o)return json(res,404,{error:"ORDER_NOT_FOUND"});
+  if(o.status==="done")return json(res,200,{status:"ok",code:o.code,sms_text:o.sms_text});
+  if(["refunded","uncertain"].includes(o.status))return json(res,200,{status:o.status});
+  if(!o.activation_id)return json(res,409,{error:"ORDER_NOT_READY"});
+  const r=await heroRequest("GET","/activations/"+encodeURIComponent(o.activation_id)+"/otp/last");
+  const otp=r.data?.data??r.data?.otp??r.data;
+  const code=otp?.smsCode??otp?.code;
+  if(code){await pool.query("UPDATE herosms_orders SET status='done',code=$1,sms_text=$2,updated_at=now() WHERE id=$3",[String(code),String(otp?.smsText||""),o.id]);return json(res,200,{status:"ok",code:String(code),sms_text:otp?.smsText||""});}
+  return json(res,200,{status:"waiting",message:"لم يصل رمز التفعيل بعد."});
+ }
+ const heroCancelMatch=url.pathname.match(/^\/api\/herosms\/orders\/(\d+)\/cancel$/);
+ if(req.method==="POST"&&heroCancelMatch){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const q=await pool.query("SELECT * FROM herosms_orders WHERE id=$1 AND user_id=$2",[heroCancelMatch[1],user.id]),o=q.rows[0];
+  if(!o)return json(res,404,{error:"ORDER_NOT_FOUND"});
+  if(o.status==="refunded")return json(res,200,{status:"refunded",message:"تم استرداد قيمة الطلب مسبقاً."});
+  if(!o.activation_id||o.status!=="waiting")return json(res,409,{error:"CANNOT_CANCEL",message:"لا يمكن إلغاء هذا الطلب في حالته الحالية."});
+  try{await heroRequest("DELETE","/activations/"+encodeURIComponent(o.activation_id));}
+  catch(e){return json(res,e.status||502,{error:"CANCEL_NOT_CONFIRMED",message:heroErrorMessage(e)});}
+  const cx=await pool.connect();try{await cx.query("BEGIN");const changed=await cx.query("UPDATE herosms_orders SET status='refunded',updated_at=now() WHERE id=$1 AND user_id=$2 AND status='waiting' RETURNING user_id,sale_price",[o.id,user.id]);if(!changed.rowCount){await cx.query("ROLLBACK");return json(res,409,{error:"ALREADY_PROCESSED"});}await cx.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[changed.rows[0].sale_price,changed.rows[0].user_id]);await cx.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد بعد إلغاء رقم سيرفر اثنين',$3)",[changed.rows[0].user_id,changed.rows[0].sale_price,"herosms:"+o.id]);await cx.query("COMMIT");return json(res,200,{status:"refunded",message:"تم إلغاء الرقم وإعادة المبلغ إلى محفظتك."});}catch(e){await cx.query("ROLLBACK");throw e;}finally{cx.release();}
+ }
+ if(req.method==="POST"&&url.pathname.match(/^\/api\/herosms\/orders\/\d+\/finish$/)){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const id=url.pathname.match(/\/(\d+)\/finish$/)[1],q=await pool.query("SELECT * FROM herosms_orders WHERE id=$1 AND user_id=$2",[id,user.id]),o=q.rows[0];
+  if(!o||!o.activation_id)return json(res,404,{error:"ORDER_NOT_FOUND"});
+  await heroRequest("POST","/activations/"+encodeURIComponent(o.activation_id)+"/finish",{});
+  await pool.query("UPDATE herosms_orders SET status='finished',updated_at=now() WHERE id=$1",[o.id]);return json(res,200,{status:"finished"});
+ }
+\n if(req.method==="GET" && url.pathname==="/api/countries"){
   const service=url.searchParams.get("service")||"tg";if(!["tg","wa"].includes(service))return json(res,400,{error:"BAD_SERVICE"});
    const r=await provider({action:"available_countries",service});if(r.data?.status!=="ok"||!r.data.countries)return json(res,r.httpStatus,r.data);
    const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
