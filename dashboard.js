@@ -34,5 +34,33 @@ $("copy-number").addEventListener("click",async()=>{const v=$("modal-phone").tex
 
 $("orders").addEventListener("click",async e=>{const cancelId=e.target.dataset.cancel;if(cancelId){if(!confirm("هل تريد إلغاء هذا الطلب؟ لن يُعاد المبلغ إلا بعد تأكيد المزود للإلغاء."))return;const btn=e.target;btn.disabled=true;btn.textContent="جارٍ الإلغاء...";try{const d=await api("/api/orders/"+cancelId+"/cancel",{method:"POST",body:"{}"});$("message").textContent=d.message||"تم إلغاء الطلب.";await load();}catch(x){$("message").textContent=x.message;btn.disabled=false;btn.textContent="إلغاء الطلب واسترداد الرصيد";}return;}const id=e.target.dataset.code;if(!id)return;try{const d=await api("/api/orders/"+id+"/code");$("message").textContent=d.status==="ok"?"رمز التحقق: "+d.code:"الحالة: "+d.status;await load();}catch(x){$("message").textContent=x.message;}});
 $("logout").onclick=async()=>{await api("/api/logout",{method:"POST"});location.href="/login.html";};
+
+async function loadCustomerExtras(){
+ try{
+  const ref=await api("/api/referrals");
+  $("referral-code").textContent=ref.code||"—";
+  $("referral-count").textContent=String(ref.invited||0);
+  $("copy-referral").onclick=async function(){try{await navigator.clipboard.writeText(location.origin+ref.link);this.textContent="تم النسخ ✓";}catch(e){this.textContent="تعذر النسخ";}};
+  const tickets=await api("/api/support/tickets");
+  const wallet=await api("/api/wallet");
+  const main=await api("/api/orders");
+  const hero=await api("/api/herosms/orders");
+  const all=(main.orders||[]).concat(hero.orders||[]);
+  const spent=(wallet.transactions||[]).filter(function(x){return x.kind==="debit";}).reduce(function(a,x){return a+Number(x.amount||0);},0);
+  $("customer-orders-count").textContent=String(all.length);
+  $("customer-spent-total").textContent="$"+spent.toFixed(2);
+  $("customer-active-count").textContent=String(all.filter(function(x){return ["waiting","processing","uncertain"].includes(x.status);}).length);
+  $("customer-tier").textContent=spent>=100?"VIP":spent>=50?"ذهبي":spent>=20?"فضي":"عضو جديد";
+  $("customer-tier-note").textContent="مستوى تعريفي حسب إجمالي مشترياتك.";
+  $("support-tickets").textContent=(tickets.tickets||[]).length+" تذكرة في سجل الدعم.";
+ }catch(e){if(e.message==="UNAUTHORIZED")location.href="/login.html";else $("support-tickets").textContent="تعذر تحميل البيانات: "+e.message;}
+}
+$("support-form").addEventListener("submit",async function(e){
+ e.preventDefault();const b=this.querySelector("button");b.disabled=true;
+ try{const d=await api("/api/support/tickets",{method:"POST",body:JSON.stringify({subject:$("support-subject").value.trim(),message:$("support-message").value.trim()})});$("support-note").textContent="تم إرسال تذكرتك رقم #"+d.ticket.id;$("support-subject").value="";$("support-message").value="";await loadCustomerExtras();}
+ catch(x){$("support-note").textContent=x.message;}finally{b.disabled=false;}
+});
+
 load();loadCountries();
+loadCustomerExtras();
 
