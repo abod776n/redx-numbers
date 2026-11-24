@@ -39,6 +39,22 @@
 <button class="dash-buy" id="buy">شراء الرقم الآن <span>←</span></button><p id="message" class="dash-message" role="status"></p>
 </section>
 
+<section class="purchase-panel binance-panel" id="binance-topup">
+<div class="panel-heading"><div><div class="eyebrow">✦ شحن فوري · Binance Pay</div><h2>اشحن رصيدك عبر Binance Pay</h2><p>ادفع بعملة USDT عبر صفحة Binance الرسمية، وسيُضاف الرصيد تلقائياً بعد تأكيد الدفع.</p></div><div class="purchase-symbol">₿</div></div>
+<div class="binance-topup-row"><div class="field-box"><label for="binance-amount">مبلغ الشحن (USDT)</label><input id="binance-amount" type="number" min="1" max="10000" step="0.01" placeholder="مثال: 10"></div><button class="dash-buy" id="binance-pay-button">المتابعة إلى Binance Pay ↗</button></div>
+<p id="binance-message" class="dash-message" role="status">الحد الأدنى 1 USDT. لا تغلق طلب الدفع قبل إتمامه.</p>
+<div id="binance-history" class="binance-history"></div>
+</section>
+<style>
+.binance-panel{border-color:#b58a354d;background:radial-gradient(ellipse at 95% 0%,#d9a44118,transparent 45%),linear-gradient(145deg,#152238,#0b1424)}
+.binance-topup-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,.8fr);gap:13px;align-items:end;margin-top:18px}
+.binance-topup-row .field-box input{width:100%}
+.binance-topup-row .dash-buy{margin:0;min-height:49px;background:linear-gradient(110deg,#c99a35,#8e681b);color:#fff}
+.binance-history{display:grid;gap:8px;margin-top:12px}.binance-history:empty{display:none}
+.binance-history-item{display:flex;justify-content:space-between;gap:10px;padding:11px 13px;border:1px solid #ffffff16;border-radius:12px;background:#08132388;font-size:10px;color:#c8d4e8}
+.binance-history-item b{color:#e7c36b}.binance-history-item small{color:#8ea1bc}
+@media(max-width:600px){.binance-topup-row{grid-template-columns:1fr}.binance-topup-row .dash-buy{width:100%}}
+</style>
 <section class="purchase-panel payment-panel" id="payment">
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن الرصيد</div><h2>إيداع يدوي للمحفظة</h2><p>حوّل المبلغ ثم أرسل رقم العملية والإثبات. لن يُضاف الرصيد قبل مراجعة الإدارة.</p></div><div class="purchase-symbol">⇧</div></div>
 <div class="exchange-banner"><b>سعر الصرف الثابت</b><strong>1 USD = 560 YER</strong></div>
