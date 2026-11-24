@@ -11,7 +11,7 @@
 <div class="noise"></div><div class="dash-shell">
 <header class="dash-topbar">
 <a class="brand" href="/"><span class="brand-icon">T</span><span>طلباتي<span class="grad"> نمبر</span><small>TALABATI NUMBERS</small></span></a>
-<div class="dash-top-actions"><a class="dash-home" href="/">الرئيسية</a><button id="logout" class="dash-logout">تسجيل الخروج ↗</button></div>
+<div class="dash-top-actions"><a class="dash-home" href="/">الرئيسية</a><a class="dash-home" href="/recharge.html">شحن الرصيد</a><button id="logout" class="dash-logout">تسجيل الخروج ↗</button></div>
 </header>
 <main class="dash-main">
 <section class="dash-welcome">
@@ -39,73 +39,6 @@
 <button class="dash-buy" id="buy">شراء الرقم الآن <span>←</span></button><p id="message" class="dash-message" role="status"></p>
 </section>
 
-<section class="purchase-panel" id="auto-topup-picker">
-<div class="panel-heading"><div><div class="eyebrow">✦ شحن تلقائي</div><h2>وسائل الشحن التلقائي</h2><p>اختر وسيلة الشحن لفتح نموذج التحويل الخاص بها.</p></div><div class="purchase-symbol">⚡</div></div>
-<div class="auto-topup-grid">
-<button type="button" class="auto-topup-tile" data-auto-topup="binance"><span>₿</span><b>Binance</b><small>USDT</small></button>
-<button type="button" class="auto-topup-tile jeeb-auto" data-auto-topup="jeeb"><span>📲</span><b>جيب</b><small>ريال يمني</small></button>
-</div>
-</section>
-<section class="purchase-panel binance-panel auto-topup-panel" id="binance-topup" hidden>
-<div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · Binance Pay</div><h2>اشحن رصيدك عبر Binance ID</h2><p>حوّل USDT إلى حسابنا، ثم أرسل رقم المعاملة. ستراجع الإدارة التحويل وتضيف الرصيد بعد التأكد.</p></div><div class="purchase-symbol">₿</div></div>
-<div class="binance-receiver"><span>Binance Pay ID الخاص بنا</span><strong id="binance-receiver-id">1276815766</strong><button type="button" id="copy-binance-id">نسخ الرقم</button></div>
-<div class="binance-topup-row"><div class="field-box"><label for="binance-amount">مبلغ التحويل (USDT)</label><input id="binance-amount" type="number" min="1" max="10000" step="0.01" placeholder="مثال: 10"></div><div class="field-box"><label for="binance-transaction-id">رقم المعاملة (Transaction ID)</label><input id="binance-transaction-id" type="text" maxlength="100" placeholder="الصق رقم المعاملة هنا"></div></div>
-<button class="dash-buy" id="binance-pay-button">إرسال إثبات التحويل للمراجعة ↗</button>
-<p id="binance-message" class="dash-message" role="status">سيظهر طلبك قيد المراجعة. لن يُضاف الرصيد إلا بعد تأكيد الإدارة وصول التحويل. رقم المعاملة لا يمكن إرساله مرتين.</p>
-<div id="binance-history" class="binance-history"></div>
-</section>
-<section class="purchase-panel binance-panel auto-topup-panel" id="jeeb-topup" hidden style="border-color:#35b7a855;background:radial-gradient(ellipse at 95% 0%,#35b7a822,transparent 45%),linear-gradient(145deg,#122b2a,#0b1722)">
-<div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · JE E B</div><h2>اشحن رصيدك عبر محفظة جيب</h2><p>حوّل المبلغ إلى محفظة جيب، ثم أدخل رقم العملية لإرسال طلب الشحن للمراجعة.</p></div><div class="purchase-symbol">📲</div></div>
-<div class="binance-receiver" style="border-color:#35b7a855"><span>رقم محفظة جيب</span><strong id="jeeb-receiver-id" style="color:#6fe2c4">776531367</strong><button type="button" id="copy-jeeb-id" style="border-color:#35b7a855;background:#35b7a81a;color:#9af0d8">نسخ الرقم</button></div>
-<div class="binance-topup-row"><div class="field-box"><label for="jeeb-amount">مبلغ التحويل (ريال يمني)</label><input id="jeeb-amount" type="number" min="560" max="100000000" step="1" placeholder="مثال: 5600"></div><div class="field-box"><label for="jeeb-transaction-id">رقم العملية</label><input id="jeeb-transaction-id" type="text" maxlength="120" placeholder="أدخل رقم حوالة جيب"></div></div>
-<button class="dash-buy" id="jeeb-pay-button" style="background:linear-gradient(110deg,#159b83,#08715f)">إرسال إثبات التحويل للمراجعة ↗</button>
-<p id="jeeb-message" class="dash-message" role="status">أدخل المبلغ ورقم العملية بعد التحويل. ستراجع الإدارة الحوالة وتضيف الرصيد بعد التأكد من وصولها.</p>
-</section>
-<style>
-#jeeb-topup .binance-topup-row{grid-template-columns:1fr 1fr}
-@media(max-width:600px){#jeeb-topup .binance-topup-row{grid-template-columns:1fr}}
-</style>
-<style>
-.binance-panel{border-color:#b58a354d;background:radial-gradient(ellipse at 95% 0%,#d9a44118,transparent 45%),linear-gradient(145deg,#152238,#0b1424)}
-.binance-topup-row{display:grid;grid-template-columns:1fr 1fr;gap:13px;align-items:end;margin-top:18px}
-.binance-topup-row .field-box input{width:100%}.binance-receiver{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:15px;border:1px solid #d5aa4c44;border-radius:14px;background:#091426;margin-top:18px}.binance-receiver span{color:#9eacc2;font-size:11px}.binance-receiver strong{font-size:20px;direction:ltr;color:#e8c76e}.binance-receiver button{margin-right:auto;border:1px solid #d5aa4c55;border-radius:9px;padding:8px 12px;background:#d5aa4c18;color:#f1d48b;cursor:pointer;font:inherit;font-size:10px}
-.binance-topup-row .dash-buy{margin:0;min-height:49px;background:linear-gradient(110deg,#c99a35,#8e681b);color:#fff}
-.binance-history{display:grid;gap:8px;margin-top:12px}.binance-history:empty{display:none}
-.binance-history-item{display:flex;justify-content:space-between;gap:10px;padding:11px 13px;border:1px solid #ffffff16;border-radius:12px;background:#08132388;font-size:10px;color:#c8d4e8}
-.binance-history-item b{color:#e7c36b}.binance-history-item small{color:#8ea1bc}
-@media(max-width:600px){.binance-topup-row{grid-template-columns:1fr}.binance-topup-row .dash-buy{width:100%}}
-</style>
-<style>
-.payment-method-heading{font-size:11px;font-weight:700;color:#dbe5f7;margin:15px 0 9px}
-.payment-method-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.payment-method-tile{min-width:0;min-height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px solid #ffffff1c;border-radius:12px;background:#091426;color:#cbd7ea;cursor:pointer;font:inherit;padding:8px 4px;transition:.18s}
-.payment-method-tile span{font-size:19px;line-height:1.1}.payment-method-tile b{font-size:9px;white-space:nowrap}
-.payment-method-tile.selected{border-color:#9c86ff;background:linear-gradient(145deg,#7966ff2b,#1c2942);color:#fff;box-shadow:0 0 0 1px #9c86ff22}
-
-.auto-topup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,110px));gap:10px;margin-top:15px}
-.auto-topup-tile{min-height:92px;border:1px solid #d5aa4c55;border-radius:14px;background:linear-gradient(145deg,#182941,#0a1728);color:#f0d27d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:9px;cursor:pointer;font:inherit}
-.auto-topup-tile span{font-size:24px;line-height:1.1}.auto-topup-tile b{font-size:11px}.auto-topup-tile small{font-size:9px;color:#a9b8cc}
-.auto-topup-tile.jeeb-auto{border-color:#35b7a855;background:linear-gradient(145deg,#12332f,#0b1722);color:#7de5c9}
-.auto-topup-tile:active{transform:scale(.97)}
-.auto-topup-panel[hidden]{display:none!important}
-.payment-currency{margin-top:12px;max-width:100%}
-@media(max-width:600px){.payment-method-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}.payment-method-tile{min-height:60px}}
-</style>
-<section class="purchase-panel payment-panel" id="payment">
-<div class="panel-heading"><div><div class="eyebrow">✦ شحن الرصيد</div><h2>إيداع يدوي للمحفظة</h2><p>حوّل المبلغ ثم أرسل رقم العملية والإثبات. لن يُضاف الرصيد قبل مراجعة الإدارة.</p></div><div class="purchase-symbol">⇧</div></div>
-<div class="exchange-banner"><b>سعر الصرف الثابت</b><strong>1 USD = 560 YER</strong></div>
-<div class="payment-method-heading">اختر وسيلة الدفع</div><div class="payment-method-grid" id="payment-method-grid"><button type="button" class="payment-method-tile selected" data-pay-method="fulusak"><span>💳</span><b>فلوسك</b></button><button type="button" class="payment-method-tile" data-pay-method="onecash"><span>💠</span><b>ون كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="cash"><span>💵</span><b>كاش</b></button></div><select id="pay-method" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="fulusak">فلوسك</option><option value="onecash">ون كاش</option><option value="cash">كاش</option></select><div class="field-box payment-currency"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
-<div class="payment-destination" id="payment-destination">تعليمات وبيانات التحويل ستظهر هنا.</div>
-<div class="purchase-fields">
-<div class="field-box"><label for="pay-amount">المبلغ المحوّل</label><input id="pay-amount" type="number" min="1" step="0.01" placeholder="أدخل المبلغ"></div>
-<div class="field-box"><label for="pay-sender">اسم صاحب الحوالة</label><input id="pay-sender" maxlength="120" placeholder="الاسم كما يظهر في الحوالة"></div>
-</div>
-<div class="field-box payment-ref"><label for="pay-reference">رقم العملية / مرجع الحوالة</label><input id="pay-reference" maxlength="120" placeholder="أدخل رقم العملية"></div>
-<div class="field-box payment-ref"><label for="pay-proof">صورة الإيصال (اختياري)</label><input id="pay-proof" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG أو JPG أو WEBP، بحد أقصى 1.8 ميجابايت.</small></div>
-<div class="price-strip" id="pay-conversion">أدخل المبلغ لحساب قيمته بالدولار.</div>
-<button class="dash-buy" id="submit-payment">إرسال طلب الشحن للمراجعة <span>←</span></button><p id="payment-message" class="dash-message" role="status"></p>
-</section>
-<section class="dash-list-panel payment-history"><div class="list-heading"><div><h2>طلبات الشحن</h2><p>حالة مراجعة الحوالات اليدوية</p></div><span class="list-mark">03</span></div><div id="payment-requests" class="dash-list-content">جارٍ التحميل...</div></section>
 <section class="dash-lower">
 <article class="dash-list-panel"><div class="list-heading"><div><h2>طلباتي الأخيرة</h2><p>تابع الأرقام وحالات الطلب</p></div><span class="list-mark">01</span></div><div id="orders" class="dash-list-content">جارٍ التحميل...</div></article>
 <article class="dash-list-panel"><div class="list-heading"><div><h2>حركة المحفظة</h2><p>آخر عمليات الرصيد</p></div><span class="list-mark">02</span></div><div id="transactions" class="dash-list-content">جارٍ التحميل...</div><div class="wallet-note">الشحن الإلكتروني غير مفعّل حالياً. لا تحول أي مبلغ إلا عبر وسائل الدفع الرسمية المعلنة.</div></article>
