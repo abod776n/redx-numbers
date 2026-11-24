@@ -85,7 +85,7 @@ async function handleApi(req,res,url){
  if(url.pathname.startsWith("/api/admin/") && (!user||user.role!=="admin"))return json(res,403,{error:"ADMIN_ONLY"});
  if(req.method==="POST" && url.pathname==="/api/admin/setup"){
   if(!process.env.ADMIN_SETUP_TOKEN)return json(res,503,{error:"ADMIN_SETUP_TOKEN_NOT_CONFIGURED"});
-  const b=await readBody(req);if(!crypto.timingSafeEqual(Buffer.from(String(b.setupToken||"")),Buffer.from(process.env.ADMIN_SETUP_TOKEN)))return json(res,403,{error:"INVALID_SETUP_TOKEN"});
+  const b=await readBody(req);const supplied=Buffer.from(String(b.setupToken||""));const expected=Buffer.from(process.env.ADMIN_SETUP_TOKEN);if(supplied.length!==expected.length||!crypto.timingSafeEqual(supplied,expected))return json(res,403,{error:"INVALID_SETUP_TOKEN"});
   const count=await pool.query("SELECT count(*)::int AS n FROM users WHERE role='admin'");if(count.rows[0].n>0)return json(res,409,{error:"ADMIN_ALREADY_EXISTS"});
   const email=String(b.email||"").trim().toLowerCase(),password=String(b.password||"");if(!email||password.length<14)return json(res,400,{error:"استخدم بريد مدير وكلمة مرور لا تقل عن 14 حرفاً."});
   const ph=await new Promise((resolve,reject)=>crypto.scrypt(password,process.env.SESSION_SECRET||"talabati",64,(e,k)=>e?reject(e):resolve(k.toString("hex"))));
@@ -143,7 +143,7 @@ async function handleApi(req,res,url){
   if(!o.provider_order_id)return json(res,409,{error:"ORDER_NOT_READY"});
   const r=await provider({action:"getCode",order_id:o.provider_order_id});
   if(r.data.status==="ok"){await pool.query("UPDATE number_orders SET status='done',code=$1,passcode=$2,updated_at=now() WHERE id=$3",[r.data.code,r.data.pass||"",o.id]);return json(res,200,{status:"ok",code:r.data.code,pass:r.data.pass||""});}
-  if(r.data.code==="EXPIRED"||r.data.code==="REFUNDED"){await pool.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1",[o.id]);return json(res,200,{status:"refunded",code:r.data.code});}
+  if(r.data.code==="EXPIRED"||r.data.code==="REFUNDED"){const c=await pool.connect();try{await c.query("BEGIN");const changed=await c.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND status='waiting' RETURNING user_id,sale_price",[o.id]);if(changed.rowCount){await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[changed.rows[0].sale_price,changed.rows[0].user_id]);await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد تلقائي لانتهاء الرقم',$3)",[changed.rows[0].user_id,changed.rows[0].sale_price,"order:"+o.id]);}await c.query("COMMIT");}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}return json(res,200,{status:"refunded",code:r.data.code});}
   return json(res,r.httpStatus,{status:r.data.status||"waiting",expires_in:r.data.expires_in});
  }
  if(req.method==="GET"&&url.pathname==="/api/wallet"){
