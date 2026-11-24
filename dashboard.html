@@ -47,6 +47,17 @@
 <p id="binance-message" class="dash-message" role="status">سيظهر طلبك قيد المراجعة. لن يُضاف الرصيد إلا بعد تأكيد الإدارة وصول التحويل. رقم المعاملة لا يمكن إرساله مرتين.</p>
 <div id="binance-history" class="binance-history"></div>
 </section>
+<section class="purchase-panel binance-panel" id="jeeb-topup" style="border-color:#35b7a855;background:radial-gradient(ellipse at 95% 0%,#35b7a822,transparent 45%),linear-gradient(145deg,#122b2a,#0b1722)">
+<div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · JE E B</div><h2>اشحن رصيدك عبر محفظة جيب</h2><p>حوّل المبلغ إلى محفظة جيب، ثم أدخل رقم العملية لإرسال طلب الشحن للمراجعة.</p></div><div class="purchase-symbol">📲</div></div>
+<div class="binance-receiver" style="border-color:#35b7a855"><span>رقم محفظة جيب</span><strong id="jeeb-receiver-id" style="color:#6fe2c4">776531367</strong><button type="button" id="copy-jeeb-id" style="border-color:#35b7a855;background:#35b7a81a;color:#9af0d8">نسخ الرقم</button></div>
+<div class="binance-topup-row"><div class="field-box"><label for="jeeb-amount">مبلغ التحويل (ريال يمني)</label><input id="jeeb-amount" type="number" min="560" max="100000000" step="1" placeholder="مثال: 5600"></div><div class="field-box"><label for="jeeb-transaction-id">رقم العملية</label><input id="jeeb-transaction-id" type="text" maxlength="120" placeholder="أدخل رقم حوالة جيب"></div></div>
+<button class="dash-buy" id="jeeb-pay-button" style="background:linear-gradient(110deg,#159b83,#08715f)">إرسال إثبات التحويل للمراجعة ↗</button>
+<p id="jeeb-message" class="dash-message" role="status">أدخل المبلغ ورقم العملية بعد التحويل. ستراجع الإدارة الحوالة وتضيف الرصيد بعد التأكد من وصولها.</p>
+</section>
+<style>
+#jeeb-topup .binance-topup-row{grid-template-columns:1fr 1fr}
+@media(max-width:600px){#jeeb-topup .binance-topup-row{grid-template-columns:1fr}}
+</style>
 <style>
 .binance-panel{border-color:#b58a354d;background:radial-gradient(ellipse at 95% 0%,#d9a44118,transparent 45%),linear-gradient(145deg,#152238,#0b1424)}
 .binance-topup-row{display:grid;grid-template-columns:1fr 1fr;gap:13px;align-items:end;margin-top:18px}
