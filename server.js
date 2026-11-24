@@ -82,7 +82,7 @@ async function handleApi(req,res,url){
  }
  const user=await auth(req);
  if(req.method==="GET" && url.pathname==="/api/me")return user?json(res,200,{user:safeUser(user)}):json(res,401,{error:"UNAUTHORIZED"});
- if(url.pathname.startsWith("/api/admin/") && (!user||user.role!=="admin"))return json(res,403,{error:"ADMIN_ONLY"});
+ if(url.pathname.startsWith("/api/admin/") && url.pathname!=="/api/admin/setup" && (!user||user.role!=="admin"))return json(res,403,{error:"ADMIN_ONLY"});
  if(req.method==="POST" && url.pathname==="/api/admin/setup"){
   if(!process.env.ADMIN_SETUP_TOKEN)return json(res,503,{error:"ADMIN_SETUP_TOKEN_NOT_CONFIGURED"});
   const b=await readBody(req);const supplied=Buffer.from(String(b.setupToken||""));const expected=Buffer.from(process.env.ADMIN_SETUP_TOKEN);if(supplied.length!==expected.length||!crypto.timingSafeEqual(supplied,expected))return json(res,403,{error:"INVALID_SETUP_TOKEN"});
