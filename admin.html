@@ -67,6 +67,7 @@
   <a href="#customers-section"><i>♙</i>العملاء</a>
   <a href="#orders-section"><i>▤</i>الطلبات</a>
   <a href="#transactions-section"><i>↕</i>سجل المحفظة</a>
+  <a href="#support-admin-section"><i>✉</i>تذاكر الدعم</a>
  </nav>
  <div class="side-bottom"><a href="/" target="_blank">↗ فتح المتجر</a><button class="logout" id="logout">تسجيل الخروج</button></div>
 </aside>
@@ -97,6 +98,7 @@
  <section id="customers-section" class="panel"><div class="section-title"><div><h2>إدارة العملاء</h2><p>ابحث بالبريد أو رقم الهاتف أو رقم العميل</p></div></div><input id="user-search" class="search-input" type="search" placeholder="ابحث عن عميل..." autocomplete="off"><div id="users" class="data-grid">—</div></section>
  <section id="orders-section" class="panel"><div class="section-title"><div><h2>كل طلبات الأرقام</h2><p>طلبات السيرفر الأول والثاني في قائمة موحدة</p></div></div><input id="order-search" class="search-input" type="search" placeholder="ابحث برقم الطلب أو الهاتف أو العميل..." autocomplete="off"><div class="filter-row"><button class="filter-chip active" data-order-filter="all">الكل</button><button class="filter-chip" data-order-filter="waiting">بانتظار الكود</button><button class="filter-chip" data-order-filter="done">مكتمل</button><button class="filter-chip" data-order-filter="refunded">مسترد</button><button class="filter-chip" data-order-filter="uncertain">قيد المراجعة</button></div><div id="orders" class="data-grid">—</div></section>
  <section id="transactions-section" class="panel"><div class="section-title"><div><h2>سجل حركة المحافظ</h2><p>آخر عمليات الشحن والخصم والاسترداد لكل العملاء</p></div></div><input id="transaction-search" class="search-input" type="search" placeholder="ابحث باسم العميل أو نوع العملية..." autocomplete="off"><div id="transactions" class="data-grid">جارٍ تحميل السجل...</div></section>
+ <section id="support-admin-section" class="panel"><div class="section-title"><div><h2>تذاكر الدعم الفني</h2><p>استفسارات العملاء والرد عليها من لوحة الإدارة</p></div><button type="button" class="btn" id="refresh-support">تحديث التذاكر</button></div><div id="admin-support-tickets" class="data-grid">جارٍ تحميل التذاكر...</div></section>
  <div class="footer-note">طلباتي نمبر · لوحة الإدارة © 2026</div>
 </main></div><script src="/admin.js"></script>
 <script>
