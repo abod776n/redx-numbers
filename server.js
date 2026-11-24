@@ -35,12 +35,23 @@ async function initDb(){
  CREATE INDEX IF NOT EXISTS payment_requests_user_idx ON payment_requests(user_id,created_at DESC);
  CREATE TABLE IF NOT EXISTS binance_payments(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),merchant_trade_no TEXT UNIQUE NOT NULL,prepay_id TEXT,transaction_id TEXT UNIQUE,amount_usdt NUMERIC(14,8) NOT NULL,status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING','PAID','CLOSED')),checkout_url TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),paid_at TIMESTAMPTZ);
  CREATE INDEX IF NOT EXISTS binance_payments_user_idx ON binance_payments(user_id,created_at DESC);
+ CREATE TABLE IF NOT EXISTS binance_manual_claims(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),transaction_id TEXT UNIQUE NOT NULL,amount_usdt NUMERIC(14,8) NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+ CREATE INDEX IF NOT EXISTS binance_manual_claims_user_idx ON binance_manual_claims(user_id,created_at DESC);
  INSERT INTO settings(key,value) VALUES ('payment_methods', '{"fulusak":"","jeeb":"","onecash":"","cash":"","binance":""}') ON CONFLICT(key) DO NOTHING;
  CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
  INSERT INTO settings(key,value) VALUES ('markup_percent','10') ON CONFLICT(key) DO NOTHING;
  `);
 }
 
+function binanceApiCredentials(){return {key:process.env.BINANCE_API_KEY||process.env.BINANCE_PAY_API_KEY,secret:process.env.BINANCE_API_SECRET||process.env.BINANCE_PAY_SECRET_KEY};}
+async function binancePayHistory(){
+ const {key,secret}=binanceApiCredentials();if(!key||!secret)throw new Error("BINANCE_API_CREDENTIALS_MISSING");
+ const params=new URLSearchParams({startTime:String(Date.now()-90*24*60*60*1000),endTime:String(Date.now()),limit:"100",recvWindow:"10000",timestamp:String(Date.now())});
+ const signature=crypto.createHmac("sha256",secret).update(params.toString()).digest("hex");params.set("signature",signature);
+ const r=await fetch("https://api.binance.com/sapi/v1/pay/transactions?"+params.toString(),{headers:{"X-MBX-APIKEY":key}});
+ const d=await r.json().catch(()=>({}));if(!r.ok||d.success===false||(d.code&&String(d.code)!=="000000"))throw new Error("BINANCE_HISTORY_API_ERROR: "+String(d.msg||d.message||d.code||r.status).slice(0,220));
+ return Array.isArray(d.data)?d.data:[];
+}
 function binanceConfigured(){return !!(process.env.BINANCE_PAY_API_KEY&&process.env.BINANCE_PAY_SECRET_KEY);}
 function binanceSign(payload){return crypto.createHmac("sha512",process.env.BINANCE_PAY_SECRET_KEY).update(payload).digest("hex").toUpperCase();}
 async function binanceRequest(endpoint,body={}){const timestamp=String(Date.now()),nonce=crypto.randomBytes(16).toString("hex"),raw=JSON.stringify(body),signature=binanceSign(timestamp+"\n"+nonce+"\n"+raw+"\n");const r=await fetch("https://bpay.binanceapi.com"+endpoint,{method:"POST",headers:{"Content-Type":"application/json","BinancePay-Timestamp":timestamp,"BinancePay-Nonce":nonce,"BinancePay-Certificate-SN":process.env.BINANCE_PAY_API_KEY,"BinancePay-Signature":signature},body:raw});const d=await r.json().catch(()=>({}));if(!r.ok||d.status==="FAIL"||(d.code&&d.code!=="000000")){const detail=[`HTTP_${r.status}`,d.code||"NO_CODE",d.errorCode||"",d.errorMessage||d.message||""].filter(Boolean).join(" | ").slice(0,500);throw new Error(detail||"BINANCE_API_ERROR");}return d;}
@@ -181,6 +192,34 @@ async function handleApi(req,res,url){
  }
 
 
+ if(req.method==="POST"&&url.pathname==="/api/binance/verify-transfer"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  if(!rateLimit(req,"binance-verify",5))return json(res,429,{error:"RATE_LIMITED"});
+  const b=await readBody(req),transactionId=String(b.transaction_id||"").trim(),amount=Number(b.amount);
+  if(!transactionId||transactionId.length<6||transactionId.length>100||/[\\s<>]/.test(transactionId))return json(res,400,{error:"أدخل رقم معاملة Binance الصحيح."});
+  if(!Number.isFinite(amount)||amount<1||amount>10000)return json(res,400,{error:"أدخل مبلغاً بين 1 و10000 USDT."});
+  try{
+   const rows=await binancePayHistory();
+   const tx=rows.find(x=>String(x.transactionId||"")===transactionId);
+   if(!tx)return json(res,404,{error:"لم نعثر على رقم المعاملة في سجل Binance خلال آخر 90 يوماً. تأكد من الرقم وانتظر قليلاً إذا كان التحويل حديثاً."});
+   const receiver=tx.receiverInfo||{},receivedAmount=Number(tx.amount);
+   const receiverId=String(receiver.binanceId||receiver.accountId||"");
+   const incoming=Number.isFinite(receivedAmount)&&receivedAmount>0&&String(tx.currency||"").toUpperCase()==="USDT";
+   if(String(tx.orderType||"").toUpperCase()!=="PAY"||tx.success!==true||!incoming||receiverId!=="1276815766"||Math.abs(receivedAmount-amount)>0.00000001)
+    return json(res,409,{error:"المعاملة موجودة لكنها لا تطابق شروط الشحن: يجب أن تكون PAY ناجحة وبعملة USDT وبالمبلغ نفسه ومستلمة على حسابنا."});
+   const c=await pool.connect();
+   try{
+    await c.query("BEGIN");
+    const exists=await c.query("SELECT id FROM binance_manual_claims WHERE transaction_id=$1 FOR UPDATE",[transactionId]);
+    if(exists.rowCount){await c.query("ROLLBACK");return json(res,409,{error:"رقم المعاملة مستخدم مسبقاً ولا يمكن شحنه مرتين."});}
+    await c.query("INSERT INTO binance_manual_claims(user_id,transaction_id,amount_usdt) VALUES($1,$2,$3)",[user.id,transactionId,receivedAmount]);
+    await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[receivedAmount,user.id]);
+    await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'credit',$2,'شحن تلقائي عبر Binance Pay بعد التحقق',$3)",[user.id,receivedAmount,"binance-transfer:"+transactionId]);
+    await c.query("COMMIT");
+    return json(res,200,{ok:true,amount:receivedAmount,message:"تم التحقق من التحويل وإضافة الرصيد إلى محفظتك."});
+   }catch(e){await c.query("ROLLBACK");if(e.code==="23505")return json(res,409,{error:"رقم المعاملة مستخدم مسبقاً."});throw e;}finally{c.release();}
+  }catch(e){console.error("Binance transfer verification:",e.message);return json(res,502,{error:e.message.startsWith("BINANCE_API_CREDENTIALS_MISSING")?"أضف مفتاح Binance API العادي والسر الخاص به بصلاحية القراءة.":"تعذر الاتصال بسجل معاملات Binance للتحقق. "+e.message});}
+ }
  if(req.method==="POST"&&url.pathname==="/api/binance/create-order"){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
   if(!binanceConfigured())return json(res,503,{error:"BINANCE_NOT_CONFIGURED",message:"خدمة Binance Pay لم تُفعّل بعد؛ مفاتيح التاجر مطلوبة في إعدادات الاستضافة."});
