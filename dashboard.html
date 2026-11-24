@@ -83,6 +83,29 @@
 <article class="dash-list-panel"><div class="list-heading"><div><h2>طلباتي الأخيرة</h2><p>تابع الأرقام وحالات الطلب</p></div><span class="list-mark">01</span></div><div id="orders" class="dash-list-content">جارٍ التحميل...</div></article>
 <article class="dash-list-panel"><div class="list-heading"><div><h2>حركة المحفظة</h2><p>آخر عمليات الرصيد</p></div><span class="list-mark">02</span></div><div id="transactions" class="dash-list-content">جارٍ التحميل...</div><div class="wallet-note">الشحن الإلكتروني غير مفعّل حالياً. لا تحول أي مبلغ إلا عبر وسائل الدفع الرسمية المعلنة.</div></article>
 </section>
+
+<section class="customer-insights-grid" aria-label="ملخص الحساب">
+ <article class="customer-insight-card"><span>📊 ملخص نشاطك</span><div class="customer-insight-values"><div><b id="customer-orders-count">—</b><small>إجمالي الطلبات</small></div><div><b id="customer-spent-total">$—</b><small>إجمالي المشتريات</small></div><div><b id="customer-active-count">—</b><small>طلبات نشطة</small></div></div></article>
+ <article class="customer-insight-card"><span>🏅 مستوى العضوية</span><strong id="customer-tier">عضو جديد</strong><small id="customer-tier-note">يتحدد المستوى حسب نشاط حسابك</small></article>
+</section>
+<section class="customer-extra-grid">
+ <article class="purchase-panel referral-panel">
+  <div class="panel-heading"><div><div class="eyebrow">✦ ادعُ أصدقاءك</div><h2>رابط الدعوة الخاص بك</h2><p>شارك رابطك وتابع عدد الحسابات التي انضمت عن طريقك.</p></div><div class="purchase-symbol">♧</div></div>
+  <div class="referral-code-row"><strong id="referral-code">جارٍ التحميل...</strong><button type="button" id="copy-referral">نسخ الرابط</button></div>
+  <div class="referral-count"><b id="referral-count">—</b><span>حسابات انضمت عبر دعوتك</span></div>
+  <small class="referral-disclaimer">الدعوات للتتبع حالياً ولا تمنح رصيداً تلقائياً.</small>
+ </article>
+ <article class="purchase-panel support-panel">
+  <div class="panel-heading"><div><div class="eyebrow">✦ نحن هنا لمساعدتك</div><h2>مركز الدعم الفني</h2><p>أرسل استفسارك أو بلّغ عن مشكلة في طلبك.</p></div><div class="purchase-symbol">✉</div></div>
+  <form id="support-form" class="support-form">
+   <label for="support-subject">عنوان المشكلة</label><input id="support-subject" maxlength="120" required placeholder="مثال: تأخر وصول كود التفعيل">
+   <label for="support-message">التفاصيل</label><textarea id="support-message" rows="3" maxlength="2000" required placeholder="اشرح المشكلة ورقم الطلب إن وجد..."></textarea>
+   <button class="dash-buy" type="submit">إرسال إلى الدعم ←</button>
+   <p id="support-note" class="dash-message" role="status"></p>
+  </form>
+  <div id="support-tickets" class="support-ticket-list">جارٍ تحميل تذاكرك...</div>
+ </article>
+</section>
 </section>
 <section id="customer-recharge-view" class="customer-page-view" hidden>
 <button type="button" class="customer-back-btn" data-customer-page="buy">← العودة إلى شراء الأرقام</button>
