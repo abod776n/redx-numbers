@@ -56,7 +56,16 @@
   <button type="button" class="service-tile selected" data-hero-service="wa"><span class="service-tile-icon wa-icon">◉</span><span><b>WhatsApp</b><small>أرقام واتساب</small></span><i>✓</i></button>
   <button type="button" class="service-tile" data-hero-service="tg"><span class="service-tile-icon tg-icon">➤</span><span><b>Telegram</b><small>أرقام تيليجرام</small></span><i>✓</i></button>
  </div>
- <div class="field-box" style="margin-top:16px"><label for="hero-country">الدولة المتاحة</label><select id="hero-country"><option value="">جارٍ تحميل العروض...</option></select></div>
+ <div class="country-picker-wrap" id="hero-country-picker-wrap">
+  <div class="country-picker-head"><div><label class="country-label" for="hero-country-trigger">اختر الدولة</label><p>اختر الدولة المناسبة، وشاهد السعر والتوفر بوضوح</p></div><span class="country-count" id="hero-country-count">جارٍ التحميل</span></div>
+  <button type="button" id="hero-country-trigger" class="country-trigger" aria-expanded="false"><span class="country-trigger-flag" id="hero-country-flag">🌍</span><span class="country-trigger-copy"><b id="hero-country-name">جارٍ تحميل الدول...</b><small id="hero-country-meta">لحظات من فضلك</small></span><span class="country-trigger-chevron">⌄</span></button>
+  <div id="hero-country-dropdown" class="country-dropdown" hidden>
+    <div class="country-sort"><span>ترتيب السعر</span><button type="button" class="country-sort-btn active" data-hero-sort="asc">الأرخص أولاً ↑</button><button type="button" class="country-sort-btn" data-hero-sort="desc">الأغلى أولاً ↓</button></div>
+    <div class="country-search-wrap"><span>⌕</span><input id="hero-country-search" type="search" placeholder="ابحث عن دولة أو رمزها..." autocomplete="off"></div>
+    <div id="hero-country-options" class="country-options"></div>
+  </div>
+  <select id="hero-country" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="">اختر الدولة</option></select>
+</div>
  <div class="price-strip" id="hero-price">اختر الدولة لعرض السعر والتوفر.</div>
  <div class="hero-vpn-note"><b>📌 تعليمات مهمة لاستلام رمز التفعيل</b><ol><li>في بعض الحالات قد تحتاج إلى تشغيل VPN حتى تتمكن من استقبال رمز التفعيل.</li><li>إذا تأخر وصول الكود، جرّب تغيير دولة الـ VPN أو إعادة الاتصال.</li><li>اترك صفحة الطلب مفتوحة وتابع تحديث وصول الرسالة.</li><li>تأكد من إدخال الرقم في التطبيق أو الموقع المطلوب بشكل صحيح.</li><li>لا تلغِ الطلب قبل مراجعة حالة الرقم.</li></ol><small>تشغيل VPN ليس ضرورياً دائماً، لكنه قد يساعد في بعض الحالات، ولا يضمن وصول الرمز.</small></div>
  <button class="dash-buy" id="hero-buy">شراء من سيرفر رقم اثنين <span>←</span></button><p id="hero-message" class="dash-message" role="status"></p>
