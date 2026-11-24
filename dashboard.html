@@ -40,15 +40,17 @@
 </section>
 
 <section class="purchase-panel binance-panel" id="binance-topup">
-<div class="panel-heading"><div><div class="eyebrow">✦ شحن فوري · Binance Pay</div><h2>اشحن رصيدك عبر Binance Pay</h2><p>ادفع بعملة USDT عبر صفحة Binance الرسمية، وسيُضاف الرصيد تلقائياً بعد تأكيد الدفع.</p></div><div class="purchase-symbol">₿</div></div>
-<div class="binance-topup-row"><div class="field-box"><label for="binance-amount">مبلغ الشحن (USDT)</label><input id="binance-amount" type="number" min="1" max="10000" step="0.01" placeholder="مثال: 10"></div><button class="dash-buy" id="binance-pay-button">المتابعة إلى Binance Pay ↗</button></div>
-<p id="binance-message" class="dash-message" role="status">الحد الأدنى 1 USDT. لا تغلق طلب الدفع قبل إتمامه.</p>
+<div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · Binance Pay</div><h2>اشحن رصيدك عبر Binance ID</h2><p>حوّل USDT إلى حسابنا، ثم أدخل رقم المعاملة للتحقق التلقائي وإضافة الرصيد.</p></div><div class="purchase-symbol">₿</div></div>
+<div class="binance-receiver"><span>Binance Pay ID الخاص بنا</span><strong id="binance-receiver-id">1276815766</strong><button type="button" id="copy-binance-id">نسخ الرقم</button></div>
+<div class="binance-topup-row"><div class="field-box"><label for="binance-amount">مبلغ التحويل (USDT)</label><input id="binance-amount" type="number" min="1" max="10000" step="0.01" placeholder="مثال: 10"></div><div class="field-box"><label for="binance-transaction-id">رقم المعاملة (Transaction ID)</label><input id="binance-transaction-id" type="text" maxlength="100" placeholder="الصق رقم المعاملة هنا"></div></div>
+<button class="dash-buy" id="binance-pay-button">تحقق من التحويل وإضافة الرصيد ↗</button>
+<p id="binance-message" class="dash-message" role="status">لن يُضاف الرصيد إلا بعد التأكد من نجاح التحويل ووصوله إلى حسابنا. لا يمكن استخدام رقم المعاملة أكثر من مرة.</p>
 <div id="binance-history" class="binance-history"></div>
 </section>
 <style>
 .binance-panel{border-color:#b58a354d;background:radial-gradient(ellipse at 95% 0%,#d9a44118,transparent 45%),linear-gradient(145deg,#152238,#0b1424)}
-.binance-topup-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,.8fr);gap:13px;align-items:end;margin-top:18px}
-.binance-topup-row .field-box input{width:100%}
+.binance-topup-row{display:grid;grid-template-columns:1fr 1fr;gap:13px;align-items:end;margin-top:18px}
+.binance-topup-row .field-box input{width:100%}.binance-receiver{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:15px;border:1px solid #d5aa4c44;border-radius:14px;background:#091426;margin-top:18px}.binance-receiver span{color:#9eacc2;font-size:11px}.binance-receiver strong{font-size:20px;direction:ltr;color:#e8c76e}.binance-receiver button{margin-right:auto;border:1px solid #d5aa4c55;border-radius:9px;padding:8px 12px;background:#d5aa4c18;color:#f1d48b;cursor:pointer;font:inherit;font-size:10px}
 .binance-topup-row .dash-buy{margin:0;min-height:49px;background:linear-gradient(110deg,#c99a35,#8e681b);color:#fff}
 .binance-history{display:grid;gap:8px;margin-top:12px}.binance-history:empty{display:none}
 .binance-history-item{display:flex;justify-content:space-between;gap:10px;padding:11px 13px;border:1px solid #ffffff16;border-radius:12px;background:#08132388;font-size:10px;color:#c8d4e8}
