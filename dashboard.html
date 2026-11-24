@@ -54,5 +54,40 @@
 </section>
 <footer class="dash-footer"><span>© 2026 طلباتي نمبر</span><span>منصتك للأرقام الافتراضية</span></footer>
 </main></div>
+<div id="number-modal" class="number-modal" aria-hidden="true">
+ <div class="number-modal-backdrop" data-modal-close></div>
+ <section class="number-modal-card" role="dialog" aria-modal="true" aria-labelledby="number-modal-title">
+  <button class="number-modal-close" id="number-modal-close" aria-label="إغلاق">×</button>
+  <div class="number-modal-icon" id="number-modal-icon">✦</div>
+  <div class="number-modal-eyebrow">TALABATI NUMBER · LIVE ORDER</div>
+  <h2 id="number-modal-title">تفاصيل الرقم</h2>
+  <p class="number-modal-sub" id="number-modal-sub">طلبك يظهر هنا مباشرة دون الحاجة للتمرير.</p>
+  <div class="number-modal-phone"><span>رقم الهاتف</span><strong id="modal-phone">جارٍ تجهيز الرقم...</strong><button id="copy-number" type="button">نسخ الرقم</button></div>
+  <div class="number-modal-code"><span>رمز التفعيل OTP</span><strong id="modal-code">بانتظار وصول الرسالة...</strong><small id="modal-code-note">سيظهر الرمز هنا فور استلامه من المزود.</small></div>
+  <div class="number-modal-actions"><button class="dash-buy" id="modal-check-code" type="button">فحص وصول الكود ↻</button><button class="number-modal-secondary" id="modal-close-bottom" type="button">إغلاق</button></div>
+  <div class="number-modal-help" id="modal-help">لا تغلق الصفحة أثناء تجهيز الطلب. لا تشارك رمز التفعيل مع أي شخص.</div>
+ </section>
+</div>
+<style>
+.number-modal{display:none;position:fixed;inset:0;z-index:9999;align-items:center;justify-content:center;padding:18px}
+.number-modal.open{display:flex}.number-modal-backdrop{position:absolute;inset:0;background:#030713d9;backdrop-filter:blur(12px)}
+.number-modal-card{position:relative;width:min(100%,470px);max-height:92vh;overflow:auto;border:1px solid #6e69bb66;border-radius:25px;padding:30px 25px 23px;background:radial-gradient(ellipse at 50% 0%,#7166d833,transparent 48%),linear-gradient(150deg,#17243a,#0b1424);box-shadow:0 35px 110px #000b;text-align:center;animation:modal-in .25s ease-out}
+@keyframes modal-in{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+.number-modal-close{position:absolute;top:13px;left:14px;width:35px;height:35px;border:1px solid #ffffff20;border-radius:11px;background:#ffffff0a;color:#dce7fa;font-size:23px;cursor:pointer}
+.number-modal-icon{width:58px;height:58px;border-radius:19px;margin:0 auto 15px;display:grid;place-items:center;background:linear-gradient(145deg,#9c8bff,#4f70cf);box-shadow:0 12px 35px #796cff55;font-size:25px}
+.number-modal-eyebrow{font-size:8px;letter-spacing:2px;color:#9e9aff;font-weight:700}
+.number-modal-card h2{font-size:22px;margin:9px 0 7px;color:#f3f6ff}.number-modal-sub{font-size:10px;color:#99abc5;line-height:1.9;margin:0 0 20px}
+.number-modal-phone,.number-modal-code{border:1px solid #ffffff16;border-radius:16px;background:#081323aa;padding:15px;margin-top:11px;text-align:right}
+.number-modal-phone span,.number-modal-code span{display:block;font-size:9px;color:#9baec9}
+.number-modal-phone strong{display:block;font-size:20px;direction:ltr;text-align:center;letter-spacing:1px;margin:10px 0;color:#f1f5ff}
+.number-modal-phone button{display:block;margin:auto;border:1px solid #8c80ff66;background:#7468ff1c;color:#c8c2ff;border-radius:9px;padding:7px 15px;font-size:9px;cursor:pointer}
+.number-modal-code{text-align:center;background:linear-gradient(130deg,#132c3a,#101d30);border-color:#4bd6c533}
+.number-modal-code strong{display:block;font-size:30px;letter-spacing:7px;color:#54e0bf;margin:12px 0;direction:ltr;min-height:38px}
+.number-modal-code small{display:block;font-size:9px;color:#93a8c0;line-height:1.8}
+.number-modal-actions{display:grid;grid-template-columns:1fr auto;gap:9px;margin-top:17px}.number-modal-actions .dash-buy{margin:0;width:100%;min-height:47px}
+.number-modal-secondary{border:1px solid #ffffff20;background:#ffffff08;color:#c3d0e5;border-radius:12px;padding:0 18px;font-size:10px;cursor:pointer}
+.number-modal-help{font-size:9px;color:#8295b0;line-height:1.9;margin-top:15px}
+@media(max-width:480px){.number-modal{padding:10px}.number-modal-card{padding:28px 16px 18px;border-radius:20px}.number-modal-card h2{font-size:19px}.number-modal-code strong{font-size:26px}}
+</style>
 <script src="/dashboard.js"></script>
 </body></html>
