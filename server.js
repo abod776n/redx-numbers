@@ -458,7 +458,7 @@ async function handleApi(req,res,url){
   const supportReplyPrefix="/api/admin/support-tickets/",supportReplySuffix="/reply";
   if(req.method==="POST"&&url.pathname.startsWith(supportReplyPrefix)&&url.pathname.endsWith(supportReplySuffix)){
    const ticketId=url.pathname.slice(supportReplyPrefix.length,-supportReplySuffix.length);
-   if(!/^\\d+$/.test(ticketId))return json(res,404,{error:"TICKET_NOT_FOUND"});
+   if(!/^[0-9]+$/.test(ticketId))return json(res,404,{error:"TICKET_NOT_FOUND"});
    const b=await readBody(req),reply=String(b.reply||"").trim(),status=String(b.status||"answered");
    if(reply.length<2||reply.length>2000||!["answered","closed"].includes(status))return json(res,400,{error:"اكتب رداً من حرفين إلى 2000 حرف."});
    const q=await pool.query("UPDATE support_tickets SET admin_reply=$1,status=$2,updated_at=now() WHERE id=$3 RETURNING id,status,admin_reply",[reply,status,ticketId]);
