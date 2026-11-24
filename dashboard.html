@@ -40,7 +40,7 @@
  <select id="service" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="wa">واتساب</option><option value="tg">تيليجرام</option></select>
  <div class="country-picker-wrap" id="country-picker-wrap"><div class="country-picker-head"><div><label class="country-label" for="country-trigger">اختر الدولة</label><p>اختر الدولة المناسبة، وشاهد السعر والتوفر بوضوح</p></div><span class="country-count" id="country-count">جارٍ التحميل</span></div>
  <button type="button" id="country-trigger" class="country-trigger"><span class="country-trigger-flag" id="country-trigger-flag">🌍</span><span class="country-trigger-copy"><b id="country-trigger-name">اختر الدولة</b><small id="country-trigger-meta">تظهر الأسعار بعد تحميل الدول</small></span><span class="country-trigger-chevron">⌄</span></button>
- <div id="country-dropdown" class="country-dropdown" hidden><div class="country-search-wrap"><span>⌕</span><input id="country-search" type="search" placeholder="ابحث عن دولة أو رمزها..." autocomplete="off"></div><div id="country-options" class="country-options"></div></div>
+ <div id="country-dropdown" class="country-dropdown" hidden><div class="country-sort"><span>ترتيب السعر</span><button type="button" class="country-sort-btn active" data-country-sort="asc">الأرخص أولاً ↑</button><button type="button" class="country-sort-btn" data-country-sort="desc">الأغلى أولاً ↓</button></div><div class="country-search-wrap"><span>⌕</span><input id="country-search" type="search" placeholder="ابحث عن دولة أو رمزها..." autocomplete="off"></div><div id="country-options" class="country-options"></div></div>
  <select id="country" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="">اختر الدولة</option></select>
  </div>
 <div class="price-strip" id="country-info">الأسعار بالدولار وتُعرض بعد اختيار الخدمة.</div>
@@ -89,4 +89,9 @@
 @media(max-width:480px){.number-modal{padding:10px}.number-modal-card{padding:28px 16px 18px;border-radius:20px}.number-modal-card h2{font-size:19px}.number-modal-code strong{font-size:26px}}
 </style>
 <script src="/dashboard.js"></script>
-</body></html>
+<style>
+.country-sort{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.country-sort>span{font-size:9px;color:#91a3bd;margin-left:auto}
+.country-sort-btn{border:1px solid #34435e;border-radius:10px;padding:8px 10px;background:#0a1525;color:#aebbd0;font:inherit;font-size:9px;cursor:pointer}
+.country-sort-btn.active{border-color:#8b7cff;background:#8b7cff20;color:#ded6ff;box-shadow:0 0 0 2px #8b7cff12}
+</style></body></html>
