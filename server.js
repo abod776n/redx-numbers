@@ -196,29 +196,19 @@ async function handleApi(req,res,url){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
   if(!rateLimit(req,"binance-verify",5))return json(res,429,{error:"RATE_LIMITED"});
   const b=await readBody(req),transactionId=String(b.transaction_id||"").trim(),amount=Number(b.amount);
-  if(!transactionId||transactionId.length<6||transactionId.length>100||/[\\s<>]/.test(transactionId))return json(res,400,{error:"أدخل رقم معاملة Binance الصحيح."});
+  if(!transactionId||transactionId.length<6||transactionId.length>120||/[\\s<>]/.test(transactionId))return json(res,400,{error:"أدخل رقم معاملة Binance الصحيح."});
   if(!Number.isFinite(amount)||amount<1||amount>10000)return json(res,400,{error:"أدخل مبلغاً بين 1 و10000 USDT."});
+  const c=await pool.connect();
   try{
-   const rows=await binancePayHistory();
-   const tx=rows.find(x=>String(x.transactionId||"")===transactionId);
-   if(!tx)return json(res,404,{error:"لم نعثر على رقم المعاملة في سجل Binance خلال آخر 90 يوماً. تأكد من الرقم وانتظر قليلاً إذا كان التحويل حديثاً."});
-   const receiver=tx.receiverInfo||{},receivedAmount=Number(tx.amount);
-   const receiverId=String(receiver.binanceId||receiver.accountId||"");
-   const incoming=Number.isFinite(receivedAmount)&&receivedAmount>0&&String(tx.currency||"").toUpperCase()==="USDT";
-   if(String(tx.orderType||"").toUpperCase()!=="PAY"||tx.success!==true||!incoming||receiverId!=="1276815766"||Math.abs(receivedAmount-amount)>0.00000001)
-    return json(res,409,{error:"المعاملة موجودة لكنها لا تطابق شروط الشحن: يجب أن تكون PAY ناجحة وبعملة USDT وبالمبلغ نفسه ومستلمة على حسابنا."});
-   const c=await pool.connect();
-   try{
-    await c.query("BEGIN");
-    const exists=await c.query("SELECT id FROM binance_manual_claims WHERE transaction_id=$1 FOR UPDATE",[transactionId]);
-    if(exists.rowCount){await c.query("ROLLBACK");return json(res,409,{error:"رقم المعاملة مستخدم مسبقاً ولا يمكن شحنه مرتين."});}
-    await c.query("INSERT INTO binance_manual_claims(user_id,transaction_id,amount_usdt) VALUES($1,$2,$3)",[user.id,transactionId,receivedAmount]);
-    await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[receivedAmount,user.id]);
-    await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'credit',$2,'شحن تلقائي عبر Binance Pay بعد التحقق',$3)",[user.id,receivedAmount,"binance-transfer:"+transactionId]);
-    await c.query("COMMIT");
-    return json(res,200,{ok:true,amount:receivedAmount,message:"تم التحقق من التحويل وإضافة الرصيد إلى محفظتك."});
-   }catch(e){await c.query("ROLLBACK");if(e.code==="23505")return json(res,409,{error:"رقم المعاملة مستخدم مسبقاً."});throw e;}finally{c.release();}
-  }catch(e){console.error("Binance transfer verification:",e.message);return json(res,502,{error:e.message.startsWith("BINANCE_API_CREDENTIALS_MISSING")?"أضف مفتاح Binance API العادي والسر الخاص به بصلاحية القراءة.":"تعذر الاتصال بسجل معاملات Binance للتحقق. "+e.message});}
+   await c.query("BEGIN");
+   await c.query("SELECT pg_advisory_xact_lock(hashtext($1))",["binance-transfer:"+transactionId]);
+   const exists=await c.query("SELECT id FROM payment_requests WHERE method='binance' AND reference=$1 LIMIT 1",[transactionId]);
+   if(exists.rowCount){await c.query("ROLLBACK");return json(res,409,{error:"رقم المعاملة مسجل مسبقاً. لا ترسله مرة أخرى."});}
+   const amountUsd=Number(amount.toFixed(4)),amountYer=Number((amount*560).toFixed(2));
+   const q=await c.query("INSERT INTO payment_requests(user_id,method,currency,amount_entered,amount_usd,amount_yer,sender_name,reference) VALUES($1,'binance','USD',$2,$3,$4,'Binance Pay',$5) RETURNING id,status,created_at",[user.id,amount,amountUsd,amountYer,transactionId]);
+   await c.query("COMMIT");
+   return json(res,201,{ok:true,request:q.rows[0],message:"تم استلام طلب الشحن. ستراجع الإدارة رقم المعاملة وتضيف الرصيد بعد التأكد من وصول التحويل."});
+  }catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
  }
  if(req.method==="POST"&&url.pathname==="/api/binance/create-order"){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
