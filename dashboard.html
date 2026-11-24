@@ -29,6 +29,25 @@
 <div class="price-strip" id="country-info">الأسعار بالدولار وتُعرض بعد اختيار الخدمة.</div>
 <button class="dash-buy" id="buy">شراء الرقم الآن <span>←</span></button><p id="message" class="dash-message" role="status"></p>
 </section>
+
+<section class="purchase-panel payment-panel" id="payment">
+<div class="panel-heading"><div><div class="eyebrow">✦ شحن الرصيد</div><h2>إيداع يدوي للمحفظة</h2><p>حوّل المبلغ ثم أرسل رقم العملية والإثبات. لن يُضاف الرصيد قبل مراجعة الإدارة.</p></div><div class="purchase-symbol">⇧</div></div>
+<div class="exchange-banner"><b>سعر الصرف الثابت</b><strong>1 USD = 560 YER</strong></div>
+<div class="purchase-fields">
+<div class="field-box"><label for="pay-method">وسيلة الدفع</label><select id="pay-method"><option value="fulusak">فلوسك</option><option value="jeeb">جيب</option><option value="onecash">ون كاش</option><option value="cash">كاش</option><option value="binance">Binance / USDT</option></select></div>
+<div class="field-box"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
+</div>
+<div class="payment-destination" id="payment-destination">تعليمات وبيانات التحويل ستظهر هنا.</div>
+<div class="purchase-fields">
+<div class="field-box"><label for="pay-amount">المبلغ المحوّل</label><input id="pay-amount" type="number" min="1" step="0.01" placeholder="أدخل المبلغ"></div>
+<div class="field-box"><label for="pay-sender">اسم صاحب الحوالة</label><input id="pay-sender" maxlength="120" placeholder="الاسم كما يظهر في الحوالة"></div>
+</div>
+<div class="field-box payment-ref"><label for="pay-reference">رقم العملية / مرجع الحوالة</label><input id="pay-reference" maxlength="120" placeholder="أدخل رقم العملية"></div>
+<div class="field-box payment-ref"><label for="pay-proof">صورة الإيصال (اختياري)</label><input id="pay-proof" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG أو JPG أو WEBP، بحد أقصى 1.8 ميجابايت.</small></div>
+<div class="price-strip" id="pay-conversion">أدخل المبلغ لحساب قيمته بالدولار.</div>
+<button class="dash-buy" id="submit-payment">إرسال طلب الشحن للمراجعة <span>←</span></button><p id="payment-message" class="dash-message" role="status"></p>
+</section>
+<section class="dash-list-panel payment-history"><div class="list-heading"><div><h2>طلبات الشحن</h2><p>حالة مراجعة الحوالات اليدوية</p></div><span class="list-mark">03</span></div><div id="payment-requests" class="dash-list-content">جارٍ التحميل...</div></section>
 <section class="dash-lower">
 <article class="dash-list-panel"><div class="list-heading"><div><h2>طلباتي الأخيرة</h2><p>تابع الأرقام وحالات الطلب</p></div><span class="list-mark">01</span></div><div id="orders" class="dash-list-content">جارٍ التحميل...</div></article>
 <article class="dash-list-panel"><div class="list-heading"><div><h2>حركة المحفظة</h2><p>آخر عمليات الرصيد</p></div><span class="list-mark">02</span></div><div id="transactions" class="dash-list-content">جارٍ التحميل...</div><div class="wallet-note">الشحن الإلكتروني غير مفعّل حالياً. لا تحول أي مبلغ إلا عبر وسائل الدفع الرسمية المعلنة.</div></article>
