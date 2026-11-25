@@ -5,7 +5,7 @@
 <meta name="theme-color" content="#090b16"><title>حسابي | طلباتي نمبر</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/portal.css?v=4">
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/portal.css?v=5">
 </head>
 <body class="portal-body dashboard-page">
 <div class="noise"></div><div class="dash-shell">
@@ -42,7 +42,7 @@
  </div>
  <select id="service" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="wa">واتساب</option><option value="tg">تيليجرام</option></select>
  <div class="country-picker-wrap" id="country-picker-wrap"><div class="country-picker-head"><div><label class="country-label" for="country-trigger">اختر الدولة</label><p>اختر الدولة المناسبة، وشاهد السعر والتوفر بوضوح</p></div><span class="country-count" id="country-count">جارٍ التحميل</span></div>
- <button type="button" id="country-trigger" class="country-trigger"><span class="country-trigger-flag" id="country-trigger-flag"></span><span class="country-trigger-copy"><b id="country-trigger-name">اختر الدولة</b><small id="country-trigger-meta">تظهر الأسعار بعد تحميل الدول</small></span><span class="country-trigger-chevron">⌄</span></button>
+ <button type="button" id="country-trigger" class="country-trigger"><span class="country-trigger-copy"><b id="country-trigger-name">اختر الدولة</b><small id="country-trigger-meta">تظهر الأسعار بعد تحميل الدول</small></span><span class="country-trigger-chevron">⌄</span></button>
  <div id="country-dropdown" class="country-dropdown" hidden><div class="country-sort"><span>ترتيب السعر</span><button type="button" class="country-sort-btn active" data-country-sort="asc">الأرخص أولاً ↑</button><button type="button" class="country-sort-btn" data-country-sort="desc">الأغلى أولاً ↓</button></div><div class="country-search-wrap"><span>⌕</span><input id="country-search" type="search" placeholder="ابحث عن دولة أو رمزها..." autocomplete="off"></div><div id="country-options" class="country-options"></div></div>
  <select id="country" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="">اختر الدولة</option></select>
  </div>
@@ -58,7 +58,7 @@
  </div>
  <div class="country-picker-wrap" id="hero-country-picker-wrap">
   <div class="country-picker-head"><div><label class="country-label" for="hero-country-trigger">اختر الدولة</label><p>اختر الدولة المناسبة، وشاهد السعر والتوفر بوضوح</p></div><span class="country-count" id="hero-country-count">جارٍ التحميل</span></div>
-  <button type="button" id="hero-country-trigger" class="country-trigger" aria-expanded="false"><span class="country-trigger-flag" id="hero-country-flag"></span><span class="country-trigger-copy"><b id="hero-country-name">جارٍ تحميل الدول...</b><small id="hero-country-meta">لحظات من فضلك</small></span><span class="country-trigger-chevron">⌄</span></button>
+  <button type="button" id="hero-country-trigger" class="country-trigger" aria-expanded="false"><span class="country-trigger-copy"><b id="hero-country-name">جارٍ تحميل الدول...</b><small id="hero-country-meta">لحظات من فضلك</small></span><span class="country-trigger-chevron">⌄</span></button>
   <div id="hero-country-dropdown" class="country-dropdown" hidden>
     <div class="country-sort"><span>ترتيب السعر</span><button type="button" class="country-sort-btn active" data-hero-sort="asc">الأرخص أولاً ↑</button><button type="button" class="country-sort-btn" data-hero-sort="desc">الأغلى أولاً ↓</button></div>
     <div class="country-search-wrap"><span>⌕</span><input id="hero-country-search" type="search" placeholder="ابحث عن دولة أو رمزها..." autocomplete="off"></div>
@@ -114,8 +114,8 @@
 <section class="purchase-panel" id="auto-topup-picker">
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن تلقائي</div><h2>وسائل الشحن التلقائي</h2><p>اختر وسيلة الشحن لفتح نموذج التحويل الخاص بها.</p></div><div class="purchase-symbol"></div></div>
 <div class="auto-topup-grid">
-<button type="button" class="auto-topup-tile" data-auto-topup="binance"><span>₿</span><b>Binance</b><small>USDT</small></button>
-<button type="button" class="auto-topup-tile jeeb-auto" data-auto-topup="jeeb"><span></span><b>جيب</b><small>ريال يمني</small></button>
+<button type="button" class="auto-topup-tile" data-auto-topup="binance"><b>Binance</b><small>USDT</small></button>
+<button type="button" class="auto-topup-tile jeeb-auto" data-auto-topup="jeeb"><b>جيب</b><small>ريال يمني</small></button>
 </div>
 </section>
 <section class="purchase-panel binance-panel auto-topup-panel" id="binance-topup" hidden>
@@ -166,7 +166,7 @@
 <section class="purchase-panel payment-panel" id="payment">
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن الرصيد</div><h2>إيداع يدوي للمحفظة</h2><p>حوّل المبلغ ثم أرسل رقم العملية والإثبات. لن يُضاف الرصيد قبل مراجعة الإدارة.</p></div><div class="purchase-symbol">⇧</div></div>
 <div class="exchange-banner"><b>سعر الصرف الثابت</b><strong>1 USD = 560 YER</strong></div>
-<div class="payment-method-heading">اختر وسيلة الدفع</div><div class="payment-method-grid" id="payment-method-grid"><button type="button" class="payment-method-tile selected" data-pay-method="fulusak"><span></span><b>فلوسك</b></button><button type="button" class="payment-method-tile" data-pay-method="onecash"><span></span><b>ون كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="cash"><span></span><b>كاش</b></button><button type="button" class="payment-method-tile shamcash-tile" data-pay-method="shamcash"><span></span><b>شام كاش</b></button></div><select id="pay-method" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="fulusak">فلوسك</option><option value="onecash">ون كاش</option><option value="cash">كاش</option><option value="shamcash">شام كاش</option></select><div class="field-box payment-currency"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
+<div class="payment-method-heading">اختر وسيلة الدفع</div><div class="payment-method-grid" id="payment-method-grid"><button type="button" class="payment-method-tile selected" data-pay-method="fulusak"><b>فلوسك</b></button><button type="button" class="payment-method-tile" data-pay-method="onecash"><b>ون كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="cash"><b>كاش</b></button><button type="button" class="payment-method-tile shamcash-tile" data-pay-method="shamcash"><b>شام كاش</b></button></div><select id="pay-method" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="fulusak">فلوسك</option><option value="onecash">ون كاش</option><option value="cash">كاش</option><option value="shamcash">شام كاش</option></select><div class="field-box payment-currency"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
 <div class="payment-destination" id="payment-destination">تعليمات وبيانات التحويل ستظهر هنا.</div>
 <div class="purchase-fields">
 <div class="field-box"><label for="pay-amount">المبلغ المحوّل</label><input id="pay-amount" type="number" min="1" step="0.01" placeholder="أدخل المبلغ"></div>
@@ -234,9 +234,9 @@
 @media(max-width:600px){#jeeb-topup .binance-topup-row{grid-template-columns:1fr}}
 @media(max-width:480px){.customer-page-nav{gap:7px;margin:16px 0}.customer-page-tab{font-size:10px;min-height:45px}}
 </style>
-<script src="/dashboard.js?v=3"></script>
-<script src="/recharge.js?v=3"></script>
-<script src="/hero.js?v=3"></script>
+<script src="/dashboard.js?v=4"></script>
+<script src="/recharge.js?v=4"></script>
+<script src="/hero.js?v=4"></script>
 <script>
 (function(){
   const tabs=[...document.querySelectorAll("[data-customer-page]")];
