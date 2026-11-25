@@ -24,8 +24,8 @@ function renderTransactions(){
 }
 async function loadPaymentAdmin(){
  const [methods,payments]=await Promise.all([api("/api/admin/payment-methods"),api("/api/admin/payment-requests")]);
- const methodIds={fulusak:"method-fulusak",jeeb:"method-jeeb",onecash:"method-onecash",cash:"method-cash",binance:"method-binance"};
- const methodNames={fulusak:"فلوسك",jeeb:"جيب",onecash:"ون كاش",cash:"كاش",binance:"Binance / USDT"};
+ const methodIds={fulusak:"method-fulusak",jeeb:"method-jeeb",onecash:"method-onecash",cash:"method-cash",binance:"method-binance",shamcash:"method-shamcash"};
+ const methodNames={fulusak:"فلوسك",jeeb:"جيب",onecash:"ون كاش",cash:"كاش",binance:"Binance / USDT",shamcash:"شام كاش"};
  for(const [key,id] of Object.entries(methodIds))$(id).value=methods.methods?.[key]||"";
  const labels={pending:"قيد المراجعة",approved:"مقبول",rejected:"مرفوض"};
  $("payment-review").innerHTML=payments.requests.length?payments.requests.map(item=>'<div class="item"><b>طلب شحن #'+item.id+'</b> — العميل #'+item.user_id+' ('+safe(item.email||item.phone)+')<br>الوسيلة: '+safe(methodNames[item.method]||item.method)+' · المبلغ: '+Number(item.amount_entered).toLocaleString("en-US")+' '+safe(item.currency)+' · يعادل '+money(item.amount_usd)+'<br>اسم المحوّل: '+safe(item.sender_name)+' · المرجع: '+safe(item.reference)+'<br>الحالة: <b>'+safe(labels[item.status]||item.status)+'</b> · '+date(item.created_at)+(item.proof_data?'<br><a target="_blank" rel="noopener" href="'+safe(item.proof_data)+'">عرض صورة الإيصال</a>':'<br>لا توجد صورة إيصال')+(item.status==="pending"?' <div class="row" style="margin-top:10px"><button class="btn" data-approve="'+item.id+'">قبول وشحن '+money(item.amount_usd)+'</button><button class="btn" style="background:#9b3b52" data-reject="'+item.id+'">رفض الطلب</button></div>':'')+(item.admin_note?'<br>ملاحظة: '+safe(item.admin_note):"")+'</div>').join(""):'<div class="item">لا توجد طلبات دفع.</div>';
