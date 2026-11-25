@@ -73,3 +73,10 @@ main,header,footer,section{min-width:0;max-width:100%}
  .browse-cta{justify-content:center;padding:8px}
  .login-hint{display:flex;justify-content:center;text-align:center;width:100%;font-size:9px;margin-top:12px}
 }
+
+/* API guide link inside the mobile hamburger menu */
+.mobile-api-link{display:none}
+@media(max-width:850px){
+ .mobile-api-link{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border:1px solid #9b7bff55;border-radius:12px;background:linear-gradient(110deg,#8b6cff24,#54cce51a);color:#d8ccff!important;font-weight:700}
+ .mobile-api-link span{color:#62d8e8;font-size:17px}
+}
