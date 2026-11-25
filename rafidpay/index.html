@@ -1,11 +1,92 @@
-<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RafidPay</title><style>body{margin:0;background:#0b1020;color:#eef3ff;font:16px system-ui}.wrap{max-width:900px;margin:30px auto;padding:18px}.panel{background:#131c31;border:1px solid #293852;border-radius:14px;padding:22px;margin:16px 0}input,select{display:block;width:100%;box-sizing:border-box;margin:8px 0 15px;padding:12px;background:#091426;color:white;border:1px solid #34445f;border-radius:8px}button{padding:12px 18px;background:#67d5c2;border:0;border-radius:8px;font-weight:bold;cursor:pointer}a{color:#67d5c2;text-decoration:none}.muted{color:#aab8ce}pre{direction:ltr;white-space:pre-wrap;overflow-wrap:anywhere;background:#091426;padding:12px;border-radius:8px}.row{display:flex;gap:10px}.row>*{flex:1}@media(max-width:650px){.row{display:block}}</style><main class="wrap"><h1>RafidPay</h1><p class="muted">بوابة الدفع للتجار والمطورين</p><p><a href="/rafidpay/docs">وثائق API</a>　<a href="/">العودة إلى طلباتي</a></p><div class="panel"><h2>ملف التاجر</h2><p id="state">جارٍ التحميل...</p><label>اسم النشاط التجاري</label><input id="business" placeholder="اسم المتجر"><label>الدولة</label><select id="country"><option value="YE">اليمن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="IQ">العراق</option></select><button id="register">إنشاء ملف تاجر</button></div><section id="tools" hidden><div class="panel"><h2>مفتاح API</h2><button id="key">إنشاء مفتاح جديد</button><p id="keyout"></p><small>احفظ المفتاح فوراً، لن يظهر كاملاً مرة أخرى. لا تشاركه مع أحد.</small></div><div class="panel"><h2>إنشاء رابط دفع</h2><label>عنوان الطلب</label><input id="title" placeholder="فاتورة رقم 102"><label>الوصف</label><input id="desc" placeholder="اختياري"><div class="row"><div><label>المبلغ</label><input id="amount" type="number" min="0.01" step="0.01"></div><div><label>العملة</label><select id="currency"><option>USD</option><option>YER</option></select></div></div><button id="create">إنشاء الرابط</button><p id="linkout"></p></div><div class="panel"><h2>روابط الدفع</h2><button id="refresh">تحديث القائمة</button><div id="links"></div></div><div class="panel"><h2>آخر العمليات</h2><div id="tx"></div></div></section><p class="muted">الوضع الحالي Sandbox فقط. لا يتم تحصيل أموال حقيقية.</p></main><script>
-const $=x=>document.getElementById(x);let apiKey=sessionStorage.getItem("rafidpay_key")||"";
-async function call(url,opt){let r=await fetch(url,Object.assign({credentials:"same-origin",headers:{"Content-Type":"application/json"}},opt||{})),d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||d.error||"تعذر تنفيذ الطلب");return d}
-async function init(){try{let d=await call("/api/rafidpay/merchant");if(!d.merchant){$("state").textContent="سجّل الدخول إلى طلباتي ثم أنشئ ملف تاجر.";return}$("state").textContent="النشاط: "+d.merchant.business_name+" — حالة الحساب: "+d.merchant.status;if(d.merchant.status==="active"){$("tools").hidden=false;await refresh()}else $("state").textContent+=" — ينتظر مراجعة الإدارة."}catch(e){$("state").textContent="يجب تسجيل الدخول إلى حساب طلباتي أولاً."}}
-$("register").onclick=async()=>{try{let d=await call("/api/rafidpay/merchant",{method:"POST",body:JSON.stringify({business_name:$("business").value,country_code:$("country").value})});$("state").textContent="تم إنشاء الحساب. الحالة: "+d.merchant.status+" — ينتظر تفعيل الإدارة.";$("register").disabled=true}catch(e){$("state").textContent=e.message}};
-$("key").onclick=async()=>{try{let d=await call("/api/rafidpay/keys",{method:"POST",body:JSON.stringify({name:"Merchant API"})});apiKey=d.api_key;sessionStorage.setItem("rafidpay_key",apiKey);$("keyout").textContent=apiKey;await refresh()}catch(e){$("keyout").textContent=e.message}};
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RafidPay | لوحة التاجر</title>
+<style>
+:root{color-scheme:dark;--bg:#080d19;--card:#111b2d;--card2:#0c1526;--line:#263750;--text:#f3f7ff;--muted:#9cacc4;--mint:#64dfc8;--blue:#7ca9ff;--red:#ff8585}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 85% 0%,#16344a 0,transparent 38%),var(--bg);color:var(--text);font:16px/1.8 system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--mint);text-decoration:none}.wrap{max-width:1120px;margin:auto;padding:24px 18px 60px}
+nav{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:8px 0 26px}
+.brand{display:flex;align-items:center;gap:12px;font-size:22px;font-weight:850;letter-spacing:.2px}.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(145deg,#75ead6,#238f9b);display:grid;place-items:center;color:#06151c;font-weight:950;font-size:22px;box-shadow:0 8px 28px #3bd3bd33}
+.navlinks{display:flex;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:14px}
+.hero{padding:28px 0 26px;display:grid;grid-template-columns:1.4fr .8fr;gap:20px;align-items:center}
+.eyebrow{color:var(--mint);font-weight:750;font-size:13px}.hero h1{font-size:clamp(32px,5vw,52px);line-height:1.2;margin:10px 0 14px}.hero p{color:var(--muted);max-width:670px;margin:0}
+.heroBox,.panel,.step{background:linear-gradient(150deg,#152239,#101a2c);border:1px solid var(--line);border-radius:20px;box-shadow:0 18px 50px #0002}
+.heroBox{padding:22px}.heroBox strong{display:block;font-size:18px}.heroBox p{font-size:13px;margin:5px 0 15px}.status{display:inline-flex;align-items:center;gap:8px;border:1px solid #2a685e;background:#12372f;color:#83f0d6;border-radius:30px;padding:5px 12px;font-size:13px}
+.dot{width:8px;height:8px;background:#55e2b9;border-radius:50%;box-shadow:0 0 12px #55e2b9}
+.sectionhead{margin:34px 0 14px}.sectionhead h2{font-size:23px;margin:0}.sectionhead p{color:var(--muted);margin:4px 0 0;font-size:14px}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.step{padding:17px}.num{width:32px;height:32px;border-radius:10px;background:#193e47;color:var(--mint);display:grid;place-items:center;font-weight:900}.step h3{font-size:16px;margin:10px 0 4px}.step p{color:var(--muted);font-size:13px;margin:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.panel{padding:22px;margin-top:16px}.panel h2{margin:0 0 5px;font-size:21px}.hint{color:var(--muted);font-size:13px;margin:0 0 18px}
+label{display:block;font-size:14px;font-weight:650;margin:12px 0 6px}input,select{width:100%;padding:13px 14px;background:#091426;color:white;border:1px solid #34445f;border-radius:12px;font:inherit;outline:none}input:focus,select:focus{border-color:var(--mint);box-shadow:0 0 0 3px #64dfc822}
+button,.btn{border:0;border-radius:12px;padding:12px 18px;background:var(--mint);color:#06201e;font:inherit;font-weight:800;cursor:pointer;display:inline-flex;justify-content:center;align-items:center;gap:8px}button:disabled{opacity:.55;cursor:not-allowed}.secondary{background:#1a2940;color:var(--text);border:1px solid var(--line)}.danger{color:var(--red)}
+.row{display:flex;gap:10px}.row>*{flex:1}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+.notice{padding:12px 14px;border-radius:12px;background:#0b2630;border:1px solid #22515a;color:#b7f6e9;font-size:13px;margin-top:14px}
+.output{margin-top:12px;padding:12px;background:#081323;border:1px solid var(--line);border-radius:12px;overflow-wrap:anywhere;white-space:pre-wrap;direction:ltr;text-align:left;font:13px/1.7 ui-monospace,monospace;min-height:42px}
+.hidden{display:none!important}.full{grid-column:1/-1}.list{display:grid;gap:8px}.item{padding:12px;background:#0b1527;border:1px solid var(--line);border-radius:12px;font-size:14px;overflow-wrap:anywhere}
+.code{direction:ltr;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;background:#071222;border:1px solid var(--line);padding:15px;border-radius:13px;font:12px/1.7 ui-monospace,monospace}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:35px 0 0}
+@media(max-width:760px){.hero{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}.full{grid-column:auto}.wrap{padding:14px 13px 40px}.panel{padding:17px}.row{display:block}}
+@media(max-width:420px){.steps{grid-template-columns:1fr}.navlinks{gap:12px}}
+</style>
+</head>
+<body><main class="wrap">
+<nav><div class="brand"><span class="logo">R</span><span>RafidPay</span></div><div class="navlinks"><a href="/rafidpay/docs">شرح API والتوثيق</a><a href="/">العودة إلى طلباتي</a></div></nav>
+<section class="hero">
+<div><div class="eyebrow">بوابة الدفع للتجار والمطورين</div><h1>استقبل مدفوعاتك<br>بسهولة ووضوح.</h1><p>أنشئ مفاتيح API وروابط دفع، واربط متجرك أو تطبيقك مع RafidPay. ابدأ بالخطوات التالية، وستجد أمثلة الربط داخل التوثيق.</p></div>
+<div class="heroBox"><strong>حساب التاجر</strong><p id="state">جارٍ التحقق من حسابك...</p><span id="statusBadge" class="status"><i class="dot"></i> جاري التحميل</span><div class="notice">مفتاح API سري. لا تضعه داخل تطبيق العميل أو واجهة المتصفح؛ استخدمه في الخادم الخلفي فقط.</div></div>
+</section>
+<div class="sectionhead"><h2>ابدأ من هنا</h2><p>أربع خطوات واضحة لتجهيز الربط واستقبال الطلبات.</p></div>
+<section class="steps">
+<div class="step"><span class="num">1</span><h3>أنشئ ملف التاجر</h3><p>أدخل اسم نشاطك التجاري والدولة، ثم أكمل التفعيل إذا طُلب منك.</p></div>
+<div class="step"><span class="num">2</span><h3>أنشئ مفتاح API</h3><p>ولّد مفتاحاً خاصاً بخادم متجرك، وانسخه واحفظه في مكان آمن.</p></div>
+<div class="step"><span class="num">3</span><h3>اربط الخادم</h3><p>أرسل طلبات API من Backend متجرك باستخدام Bearer Token.</p></div>
+<div class="step"><span class="num">4</span><h3>أنشئ رابط دفع</h3><p>حدد اسم الطلب والمبلغ والعملة، ثم أرسل رابط الدفع إلى العميل.</p></div>
+</section>
+<section id="registerPanel" class="panel">
+<h2>ملف التاجر</h2><p class="hint">بيانات النشاط التجاري الذي سيستقبل المدفوعات.</p>
+<label for="business">اسم النشاط التجاري</label><input id="business" placeholder="مثال: متجر طلباتي">
+<label for="country">الدولة</label><select id="country"><option value="YE">اليمن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="IQ">العراق</option></select>
+<div class="actions"><button id="register">إنشاء ملف تاجر</button></div><p id="registerMsg" class="hint"></p>
+</section>
+<section id="dashboard" class="hidden">
+<div class="grid">
+<div class="panel"><h2>مفتاح API</h2><p class="hint">أنشئ مفتاحاً لاستخدامه من الخادم الخلفي. لن يظهر المفتاح كاملاً مرة أخرى بعد إغلاق الرسالة.</p>
+<label for="keyName">اسم المفتاح</label><input id="keyName" value="متجر إلكتروني - Production">
+<div class="actions"><button id="key">＋ إنشاء مفتاح API</button></div><div id="keyout" class="output hidden"></div><div class="actions"><button id="copyKey" class="secondary hidden">نسخ المفتاح</button></div>
+<div class="notice">لا ترسل المفتاح إلى العميل ولا تحفظه في JavaScript أو تطبيق الهاتف. خزّنه كمتغير بيئة سري في الخادم.</div></div>
+<div class="panel"><h2>طريقة الربط</h2><p class="hint">أرسل المفتاح في ترويسة Authorization مع كل طلب API محمي.</p>
+<div class="code">Authorization: Bearer YOUR_API_KEY
+Content-Type: application/json</div>
+<div class="actions"><a class="btn secondary" href="/rafidpay/docs">فتح التوثيق الكامل ←</a></div>
+</div>
+<div class="panel"><h2>إنشاء رابط دفع</h2><p class="hint">يمكنك إنشاء رابط من لوحة التاجر للتجربة أو استخدام API من خادمك.</p>
+<label for="title">عنوان الطلب</label><input id="title" placeholder="فاتورة رقم 102">
+<label for="desc">الوصف (اختياري)</label><input id="desc" placeholder="تفاصيل الطلب">
+<div class="row"><div><label for="amount">المبلغ</label><input id="amount" type="number" min="1" step="1" placeholder="1000"></div><div><label for="currency">العملة</label><select id="currency"><option>YER</option><option>USD</option></select></div></div>
+<div class="actions"><button id="create">إنشاء رابط الدفع</button></div><div id="linkout" class="output hidden"></div><div class="actions"><button id="copyLink" class="secondary hidden">نسخ الرابط</button></div>
+</div>
+<div class="panel"><h2>روابط الدفع والعمليات</h2><p class="hint">تابع روابطك والعمليات المسجلة في حساب التاجر.</p><div class="actions"><button id="refresh" class="secondary">↻ تحديث البيانات</button></div><div class="sectionhead"><h3>روابط الدفع</h3></div><div id="links" class="list"><div class="item">أنشئ مفتاح API لعرض الروابط.</div></div><div class="sectionhead"><h3>آخر العمليات</h3></div><div id="tx" class="list"><div class="item">ستظهر العمليات هنا بعد الربط.</div></div></div>
+<div class="panel full"><h2>كيف يعرف نظامك أن العميل دفع؟</h2><p class="hint">بعد إنشاء رابط الدفع، أرسل الرابط للعميل. استخدم إشعارات Webhook الموثقة في صفحة API لتحديث حالة الطلب في متجرك بعد تأكيد الدفع من مزود الدفع. لا تعتبر رجوع العميل إلى صفحة النجاح وحده دليلاً على الدفع.</p><a href="/rafidpay/docs">اقرأ قسم Webhooks في التوثيق ←</a></div>
+</div>
+</section>
+<footer>RafidPay · بوابة الدفع للتجار والمطورين · <a href="/rafidpay/docs">التوثيق والدعم الفني</a></footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);let apiKey=sessionStorage.getItem("rafidpay_key")||"",lastLink="";
+async function call(url,opt){const r=await fetch(url,Object.assign({credentials:"same-origin",headers:{"Content-Type":"application/json"}},opt||{}));const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||d.error||"تعذر تنفيذ الطلب");return d}
+function msg(id,text){$(id).textContent=text}
+async function init(){try{const d=await call("/api/rafidpay/merchant");if(!d.merchant){msg("state","لم يتم إنشاء ملف تاجر لهذا الحساب بعد.");$("statusBadge").textContent="غير مسجل";$("registerPanel").classList.remove("hidden");return}
+const m=d.merchant;msg("state","النشاط التجاري: "+m.business_name+" · الحالة: "+m.status);$("statusBadge").innerHTML='<i class="dot"></i> '+(m.status==="active"?"حساب نشط":"قيد المراجعة");
+if(m.status==="active"){$("dashboard").classList.remove("hidden");$("registerPanel").classList.add("hidden");if(apiKey){$("keyout").textContent=apiKey;$("keyout").classList.remove("hidden");$("copyKey").classList.remove("hidden")}await refresh()}else{$("registerPanel").classList.add("hidden");msg("state","ملف التاجر "+m.business_name+" — الحساب بانتظار تفعيل الإدارة.")}}
+catch(e){msg("state","تعذر قراءة ملف التاجر. سجّل الدخول إلى طلباتي أولاً ثم أعد تحميل الصفحة.");$("statusBadge").textContent="يلزم تسجيل الدخول"}}
+$("register").onclick=async()=>{try{const d=await call("/api/rafidpay/merchant",{method:"POST",body:JSON.stringify({business_name:$("business").value,country_code:$("country").value})});msg("registerMsg","تم إنشاء ملف التاجر. الحالة: "+d.merchant.status);await init()}catch(e){msg("registerMsg",e.message)}};
+$("key").onclick=async()=>{try{const d=await call("/api/rafidpay/keys",{method:"POST",body:JSON.stringify({name:$("keyName").value||"Merchant API"})});apiKey=d.api_key;sessionStorage.setItem("rafidpay_key",apiKey);$("keyout").textContent=apiKey;$("keyout").classList.remove("hidden");$("copyKey").classList.remove("hidden");await refresh()}catch(e){msg("keyout",e.message);$("keyout").classList.remove("hidden")}};
 async function api(url,opt){if(!apiKey)throw Error("أنشئ مفتاح API أولاً");return call(url,Object.assign({},opt||{},{headers:Object.assign({"Authorization":"Bearer "+apiKey},opt&&opt.headers||{})}))}
-$("create").onclick=async()=>{try{let d=await api("/api/rafidpay/v1/payment-links",{method:"POST",body:JSON.stringify({title:$("title").value,description:$("desc").value,amount:Number($("amount").value),currency:$("currency").value})});$("linkout").textContent=d.payment_link.url;await refresh()}catch(e){$("linkout").textContent=e.message}};
-async function refresh(){if(!apiKey){$("links").textContent="أنشئ مفتاح API لعرض الروابط والعمليات.";return}try{let a=await api("/api/rafidpay/v1/payment-links"),b=await api("/api/rafidpay/v1/transactions");$("links").textContent=a.payment_links.map(x=>x.title+" — "+x.amount+" "+x.currency+" — /rafidpay/pay/"+x.slug).join("\n")||"لا توجد روابط";$("tx").textContent=b.transactions.map(x=>x.reference+" — "+x.amount+" "+x.currency+" — "+x.status).join("\n")||"لا توجد عمليات"}catch(e){$("links").textContent=e.message}}
+$("copyKey").onclick=async()=>{try{await navigator.clipboard.writeText(apiKey);msg("keyout","تم نسخ المفتاح إلى الحافظة. أعد إنشاء المفتاح إذا فقدته.")}catch(e){msg("keyout",apiKey)}};
+$("create").onclick=async()=>{try{const d=await api("/api/rafidpay/v1/payment-links",{method:"POST",body:JSON.stringify({title:$("title").value,description:$("desc").value,amount:Number($("amount").value),currency:$("currency").value})});lastLink=d.payment_link.url;$("linkout").textContent=lastLink;$("linkout").classList.remove("hidden");$("copyLink").classList.remove("hidden");await refresh()}catch(e){msg("linkout",e.message);$("linkout").classList.remove("hidden")}};
+$("copyLink").onclick=async()=>{if(lastLink){await navigator.clipboard.writeText(lastLink);msg("linkout","تم نسخ الرابط: "+lastLink)}};
+async function refresh(){if(!apiKey){$("links").innerHTML='<div class="item">أنشئ مفتاح API لعرض الروابط والعمليات.</div>';return}try{const a=await api("/api/rafidpay/v1/payment-links"),b=await api("/api/rafidpay/v1/transactions");$("links").innerHTML=a.payment_links.length?a.payment_links.map(x=>'<div class="item"><b>'+escapeHtml(x.title)+'</b><br>'+x.amount+' '+escapeHtml(x.currency)+'<br><a href="/rafidpay/pay/'+encodeURIComponent(x.slug)+'" target="_blank">فتح صفحة الدفع</a></div>').join(""):'<div class="item">لا توجد روابط دفع حتى الآن.</div>';$("tx").innerHTML=b.transactions.length?b.transactions.map(x=>'<div class="item">'+escapeHtml(x.reference)+' · '+x.amount+' '+escapeHtml(x.currency)+' · '+escapeHtml(x.status)+'</div>').join(""):'<div class="item">لا توجد عمليات مسجلة حتى الآن.</div>'}catch(e){$("links").innerHTML='<div class="item">'+escapeHtml(e.message)+'</div>'}}
+function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 $("refresh").onclick=refresh;init();
-</script>
+</script></body></html>
