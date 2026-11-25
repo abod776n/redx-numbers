@@ -1,0 +1,25 @@
+<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RafidPay API Docs</title><style>body{margin:0;background:#0b1020;color:#eef3ff;font:15px/1.8 system-ui}.wrap{max-width:950px;margin:30px auto;padding:18px}section{background:#131c31;border:1px solid #293852;border-radius:12px;padding:20px;margin:16px 0}pre{direction:ltr;text-align:left;white-space:pre-wrap;background:#080e1a;padding:14px;border-radius:8px;color:#a8e7dc}a{color:#67d5c2}</style><main class="wrap"><h1>RafidPay — وثائق API</h1><p>الإصدار v1 · REST/JSON · Sandbox فقط</p><section><h2>تنبيه مهم</h2><p>هذه النسخة تنشئ ملفات تجار وروابط دفع وسجل عمليات تجريبية فقط. لا يوجد تحصيل أموال حقيقية أو تسوية مالية أو تكامل مع بنك/محفظة. حالة sandbox_paid لا تعني وصول المال.</p></section><section><h2>المصادقة</h2><p>استخدم مفتاح التاجر في ترويسة Authorization. لا تضع المفتاح في كود المتصفح.</p><pre>Authorization: Bearer rp_live_YOUR_API_KEY
+Content-Type: application/json</pre><p>يتم إنشاء المفتاح عبر POST /api/rafidpay/v1/keys بعد تفعيل حساب التاجر. يظهر المفتاح مرة واحدة فقط.</p></section><section><h2>إنشاء حساب تاجر</h2><pre>POST /api/rafidpay/merchant
+Cookie: talabati_session=...
+{"business_name":"متجري","country_code":"YE"}</pre><p>يتطلب تسجيل الدخول إلى طلباتي. الدول المتاحة في النموذج: YE, SA, AE, IQ. حالة الحساب الجديدة pending وتحتاج موافقة الإدارة.</p></section><section><h2>إنشاء مفتاح API</h2><pre>POST /api/rafidpay/v1/keys
+Authorization: Bearer rp_live_EXISTING_KEY
+{"name":"مفتاح المتجر"}</pre></section><section><h2>إنشاء رابط دفع</h2><pre>POST /api/rafidpay/v1/payment-links
+Authorization: Bearer rp_live_YOUR_API_KEY
+{"title":"فاتورة 102","description":"وصف اختياري","amount":12.5,"currency":"USD"}</pre><p>العملة USD أو YER. تعاد بيانات الرابط العام في الاستجابة.</p></section><section><h2>قائمة روابط الدفع</h2><pre>GET /api/rafidpay/v1/payment-links
+Authorization: Bearer rp_live_YOUR_API_KEY</pre></section><section><h2>تفاصيل رابط عام</h2><pre>GET /api/rafidpay/public/links/{slug}</pre><p>لا يحتاج إلى مصادقة.</p></section><section><h2>محاكاة الدفع</h2><pre>POST /api/rafidpay/public/links/{slug}/sandbox-pay
+Content-Type: application/json
+{"customer_name":"Customer","customer_email":"customer@example.com"}</pre><p>يعمل فقط عند ضبط RAFIDPAY_SANDBOX_ENABLED=true. ينشئ عملية sandbox_paid ولا يسحب أموالاً.</p></section><section><h2>سجل العمليات</h2><pre>GET /api/rafidpay/v1/transactions
+Authorization: Bearer rp_live_YOUR_API_KEY</pre><p>يعرض آخر 100 عملية للتاجر.</p></section><section><h2>الأخطاء</h2><ul><li>400 INVALID_PAYMENT_LINK — بيانات غير صحيحة.</li><li>401 INVALID_API_KEY — المفتاح غير صالح.</li><li>403 MERCHANT_NOT_ACTIVE — التاجر غير مفعل.</li><li>404 ENDPOINT_NOT_FOUND — المسار غير موجود.</li><li>500 INTERNAL_ERROR — خطأ داخلي.</li></ul></section><section><h2>مثال Node.js</h2><pre>const r = await fetch("https://YOUR_DOMAIN/api/rafidpay/v1/payment-links", {
+  method: "POST",
+  headers: {
+    "Authorization": "Bearer " + process.env.RAFIDPAY_API_KEY,
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    title: "Invoice 102",
+    amount: 12.5,
+    currency: "USD"
+  })
+});
+const data = await r.json();
+console.log(data);</pre></section><p><a href="/rafidpay">العودة إلى لوحة التاجر</a></p></main>
