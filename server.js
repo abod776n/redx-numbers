@@ -312,11 +312,25 @@ async function handleApi(req,res,url){
   if(o.status==="done")return json(res,200,{status:"ok",code:o.code,sms_text:o.sms_text});
   if(["refunded","uncertain"].includes(o.status))return json(res,200,{status:o.status});
   if(!o.activation_id)return json(res,409,{error:"ORDER_NOT_READY"});
-  const r=await heroRequest("GET","/activations/"+encodeURIComponent(o.activation_id)+"/otp/last");
+  let r;
+  try{
+   r=await heroRequest("GET","/activations/"+encodeURIComponent(o.activation_id)+"/otp/last");
+  }catch(e){
+   const detail=String(e.message||"");
+   // HeroSMS reports the normal "no SMS yet" state as HTTP 400 / STATUS_WAIT_CODE.
+   // This is not a failed order and must not be shown as a server error to the customer.
+   if(/STATUS_WAIT_CODE|WAITING_FOR_FIRST_SMS|WAITING_FOR_SMS|first sms or email/i.test(detail)){
+    return json(res,200,{status:"waiting",message:"لم تصل رسالة التفعيل بعد. انتظر قليلاً ثم أعد الفحص."});
+   }
+   if(/SERVER_ERROR|HTTP_5\d\d|ECONNRESET|ETIMEDOUT|AbortError/i.test(detail)){
+    return json(res,200,{status:"waiting",temporary_error:true,message:"خدمة فحص الرسائل تواجه ضغطاً مؤقتاً. رقمك ما زال قيد الانتظار؛ أعد الفحص بعد قليل."});
+   }
+   throw e;
+  }
   const otp=r.data?.data??r.data?.otp??r.data;
   const code=otp?.smsCode??otp?.code;
   if(code){await pool.query("UPDATE herosms_orders SET status='done',code=$1,sms_text=$2,updated_at=now() WHERE id=$3",[String(code),String(otp?.smsText||""),o.id]);return json(res,200,{status:"ok",code:String(code),sms_text:otp?.smsText||""});}
-  return json(res,200,{status:"waiting",message:"لم يصل رمز التفعيل بعد."});
+  return json(res,200,{status:"waiting",message:"لم يصل رمز التفعيل بعد. انتظر قليلاً ثم أعد الفحص."});
  }
  const heroCancelMatch=url.pathname.match(/^\/api\/herosms\/orders\/(\d+)\/cancel$/);
  if(req.method==="POST"&&heroCancelMatch){
