@@ -307,6 +307,7 @@ async function handleApi(req,res,url){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
   if(!rateLimit(req,"create-api-key-"+user.id,5))return json(res,429,{error:"KEY_CREATE_LIMIT"});
   const b=await readBody(req),name=String(b.name||"").trim().slice(0,60);if(name.length<2)return json(res,400,{error:"أدخل اسماً للمفتاح من حرفين على الأقل."});
+  const active=await pool.query("SELECT count(*)::int n FROM api_keys WHERE user_id=$1 AND revoked_at IS NULL",[user.id]);if(Number(active.rows[0]?.n||0)>=10)return json(res,429,{error:"وصلت إلى الحد الأقصى وهو 10 مفاتيح نشطة."});
   const secret="tn_live_"+crypto.randomBytes(32).toString("hex"),prefix=secret.slice(0,16),q=await pool.query("INSERT INTO api_keys(user_id,name,key_prefix,key_hash) VALUES($1,$2,$3,$4) RETURNING id,name,key_prefix,created_at",[user.id,name,prefix,hash(secret)]);
   return json(res,201,{key:secret,record:q.rows[0],warning:"انسخ المفتاح الآن؛ لن يظهر كاملاً مرة أخرى."});
  }
