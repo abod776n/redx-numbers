@@ -15,7 +15,7 @@ try{
  if(data.merchant){sessionStorage.removeItem("rafidpay_pending_merchant");box.textContent="تم العثور على ملف التاجر. جارٍ فتح صفحة توثيق الهوية...";location.href="/rafidpay/verify";return;}
  if(!saved){showError("لم نعثر على بيانات النشاط المحفوظة. ارجع إلى التسجيل وأكمل البيانات.");return;}
  const p=JSON.parse(saved);
- const created=await fetch("/api/rafidpay/merchant",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({owner_full_name:p.full_name,owner_phone:p.phone,business_name:p.business_name,country_code:p.country_code,business_address:p.address})});
+ const created=await fetch("/api/rafidpay/merchant",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({owner_full_name:p.full_name,owner_phone:String(p.phone||"").replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(/[۰-۹]/g,d=>String("۰۱۲۳۴۵۶۷۸۹".indexOf(d))),business_name:p.business_name,country_code:p.country_code,business_address:[p.city,p.address].filter(Boolean).join(" - ")})});
  const result=await created.json().catch(()=>({}));
  if(!created.ok&&created.status!==409){showError(result.message||result.error||"تعذر إنشاء ملف التاجر. أعد المحاولة.");return;}
  sessionStorage.setItem("rafidpay_onboarding_city",p.city||"");
