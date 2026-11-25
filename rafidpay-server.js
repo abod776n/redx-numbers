@@ -92,6 +92,53 @@ async function route(req,res,u){
  if(u.pathname==="/api/rafidpay/v1/payment-links"&&req.method==="GET"){const q=await pool.query("SELECT id,slug,title,description,amount,currency,status,mode,created_at FROM rp_payment_links WHERE merchant_id=$1 ORDER BY created_at DESC LIMIT 100",[m.id]);return json(res,200,{payment_links:q.rows});}
  if(u.pathname==="/api/rafidpay/v1/transactions"&&req.method==="GET"){const q=await pool.query("SELECT id,reference,payment_link_id,amount,currency,status,payment_mode,customer_name,customer_email,created_at,paid_at FROM rp_transactions WHERE merchant_id=$1 ORDER BY created_at DESC LIMIT 100",[m.id]);return json(res,200,{transactions:q.rows});}
  return json(res,404,{error:"ENDPOINT_NOT_FOUND"});}
+
+ if(u.pathname.startsWith("/api/rafidpay/test/")&&req.method==="POST"&&!sameOrigin(req))return json(res,403,{error:"ORIGIN_CHECK_FAILED"});
+ if(u.pathname==="/api/rafidpay/test/wallet"&&req.method==="GET"){
+  if(!user)return json(res,401,{error:"AUTH_REQUIRED"});
+  const m=await pool.query("SELECT id,status FROM rp_merchants WHERE user_id=$1",[user.id]);
+  if(!m.rowCount)return json(res,404,{error:"MERCHANT_NOT_FOUND"});
+  if(m.rows[0].status!=="active")return json(res,403,{error:"MERCHANT_NOT_ACTIVE"});
+  const token=await esaalatToken(),data=await esaalat("/wallets/?include_test=1",{headers:{Authorization:"Bearer "+token}});
+  const wallets=Array.isArray(data)?data:(data.results||data.data||[]),w=wallets.find(x=>x.is_test===true);
+  return json(res,200,{available:!!w,wallet:w?{name:w.name||"محفظة الاختبار",account_number:w.account_number||"",currency:w.currency||"YER"}:null,message:w?"محفظة الاختبار متاحة.":"لا توجد محفظة اختبار مفعّلة لهذا الحساب."});
+ }
+ if(u.pathname==="/api/rafidpay/test/create"&&req.method==="POST"){
+  if(!user)return json(res,401,{error:"AUTH_REQUIRED"});
+  const m=await pool.query("SELECT id,status FROM rp_merchants WHERE user_id=$1",[user.id]);
+  if(!m.rowCount)return json(res,404,{error:"MERCHANT_NOT_FOUND"});
+  if(m.rows[0].status!=="active")return json(res,403,{error:"MERCHANT_NOT_ACTIVE"});
+  const b=await read(req),amount=Number(b.amount);
+  if(!Number.isSafeInteger(amount)||amount<1||amount>1000)return json(res,400,{error:"TEST_AMOUNT_MUST_BE_1_TO_1000_YER"});
+  const token=await esaalatToken(),data=await esaalat("/wallets/?include_test=1",{headers:{Authorization:"Bearer "+token}});
+  const wallets=Array.isArray(data)?data:(data.results||data.data||[]),wallet=wallets.find(x=>x.is_test===true);
+  if(!wallet)return json(res,503,{error:"TEST_WALLET_UNAVAILABLE",message:"لا توجد محفظة اختبار مفعّلة في حساب إيصالات."});
+  const ref="RPT_"+crypto.randomBytes(16).toString("hex").toUpperCase();
+  const tx=await pool.query("INSERT INTO rp_transactions(merchant_id,payment_link_id,reference,amount,currency,status,payment_mode,customer_name,customer_email) VALUES($1,NULL,$2,$3,'YER','pending','live',$4,$5) RETURNING reference,amount,currency,status",[m.rows[0].id,ref,amount,String(b.customer_name||"اختبار").trim().slice(0,120),String(b.customer_email||"").trim().slice(0,160)]);
+  try{
+   const intent=await esaalat("/intents/",{method:"POST",headers:{Authorization:"Bearer "+token,"ESAALAT-IDEMPOTENCY-KEY":crypto.randomUUID()},body:JSON.stringify({wallet:wallet.id,amount:String(amount),currency:"YER",external_order_id:ref,notes:"RafidPay test checkout"})});
+   const intentId=String(intent.id||intent.intent_id||"");if(!intentId)throw Error("ESAALAT_INTENT_ID_MISSING");
+   await pool.query("UPDATE rp_transactions SET esaalat_intent_id=$1 WHERE reference=$2",[intentId,ref]);
+   return json(res,201,{order:{...tx.rows[0],intent_id:intentId,pay_url:intent.pay_url||intent.checkout_url||null,wallet:{name:wallet.name||"محفظة الاختبار",account_number:wallet.account_number||""}},notice:"اختبار باستخدام محفظة إيصالات التجريبية فقط."});
+  }catch(e){await pool.query("UPDATE rp_transactions SET status='failed' WHERE reference=$1",[ref]);throw e;}
+ }
+ const testReference=u.pathname.match(/^\/api\/rafidpay\/test\/orders\/(RPT_[A-F0-9]{32})\/reference$/);
+ if(testReference&&req.method==="POST"){
+  if(!user)return json(res,401,{error:"AUTH_REQUIRED"});
+  const b=await read(req),reference=String(b.reference||"").replace(/\s+/g,"").slice(0,128);if(!reference)return json(res,400,{error:"REFERENCE_REQUIRED"});
+  const q=await pool.query("SELECT t.id,t.esaalat_intent_id,t.status FROM rp_transactions t JOIN rp_merchants m ON m.id=t.merchant_id WHERE t.reference=$1 AND t.payment_mode='live' AND m.user_id=$2",[testReference[1],user.id]);
+  if(!q.rowCount||!q.rows[0].esaalat_intent_id)return json(res,404,{error:"ORDER_NOT_FOUND"});
+  if(q.rows[0].status!=="pending")return json(res,409,{error:"ORDER_NOT_PENDING"});
+  const token=await esaalatToken(),result=await esaalat("/intents/"+encodeURIComponent(q.rows[0].esaalat_intent_id)+"/",{method:"PATCH",headers:{Authorization:"Bearer "+token},body:JSON.stringify({reference})});
+  if(String(result.status||"").toUpperCase()==="VERIFIED")await pool.query("UPDATE rp_transactions SET status='paid',paid_at=COALESCE(paid_at,now()) WHERE id=$1",[q.rows[0].id]);
+  return json(res,200,{ok:true,status:result.status||"PENDING",order_id:testReference[1]});
+ }
+ const testStatus=u.pathname.match(/^\/api\/rafidpay\/test\/orders\/(RPT_[A-F0-9]{32})$/);
+ if(testStatus&&req.method==="GET"){
+  if(!user)return json(res,401,{error:"AUTH_REQUIRED"});
+  const q=await pool.query("SELECT t.reference,t.status,t.amount,t.currency,t.paid_at FROM rp_transactions t JOIN rp_merchants m ON m.id=t.merchant_id WHERE t.reference=$1 AND t.payment_mode='live' AND m.user_id=$2",[testStatus[1],user.id]);
+  return q.rowCount?json(res,200,{order:q.rows[0]}):json(res,404,{error:"ORDER_NOT_FOUND"});
+ }
  const cfg=u.pathname==="/api/rafidpay/public/config"&&req.method==="GET";if(cfg)return json(res,200,{publishable_key:process.env.ESAALAT_PUBLISHABLE_KEY||"",sdk_url:"https://unpkg.com/esaalat@0.7.0/dist/esaalat.global.js"});
  const createOrder=u.pathname.match(/^\/api\/rafidpay\/public\/links\/([a-f0-9]{32})\/create-order$/);if(createOrder&&req.method==="POST"){const b=await read(req),q=await pool.query("SELECT * FROM rp_payment_links WHERE slug=$1 AND status='active'",[createOrder[1]]);if(!q.rowCount)return json(res,404,{error:"PAYMENT_LINK_NOT_FOUND"});const l=q.rows[0],amount=Number(l.amount);if(l.currency!=="YER"||!Number.isSafeInteger(amount)||amount<1)return json(res,400,{error:"ESAALAT_REQUIRES_WHOLE_YER_AMOUNT"});const token=await esaalatToken();const walletData=await esaalat("/wallets/",{headers:{Authorization:"Bearer "+token}});const wallets=Array.isArray(walletData)?walletData:(walletData.results||walletData.data||[]);const wanted=String(process.env.ESAALAT_WALLET_ACCOUNT_NUMBER||"776531367").replace(/\D/g,"");const wallet=wallets.find(w=>String(w.account_number||"").replace(/\D/g,"")===wanted)|| (wallets.length===1?wallets[0]:null);if(!wallet)return json(res,503,{error:"ESAALAT_WALLET_NOT_FOUND",message:"No collectable wallet matches configured account number"});const ref="RPE_"+crypto.randomBytes(16).toString("hex").toUpperCase();const tx=await pool.query("INSERT INTO rp_transactions(merchant_id,payment_link_id,reference,amount,currency,status,payment_mode,customer_name,customer_email) VALUES($1,$2,$3,$4,'YER','pending','live',$5,$6) RETURNING id,reference,amount,currency,status",[l.merchant_id,l.id,ref,amount,String(b.customer_name||"").trim().slice(0,120),String(b.customer_email||"").trim().slice(0,160)]);try{const intent=await esaalat("/intents/",{method:"POST",headers:{Authorization:"Bearer "+token,"ESAALAT-IDEMPOTENCY-KEY":crypto.randomUUID()},body:JSON.stringify({wallet:wallet.id,amount:String(amount),currency:"YER",external_order_id:ref,notes:l.title})});const intentId=String(intent.id||intent.intent_id||"");if(!intentId)throw Error("ESAALAT_INTENT_ID_MISSING");await pool.query("UPDATE rp_transactions SET esaalat_intent_id=$1 WHERE id=$2",[intentId,tx.rows[0].id]);return json(res,201,{order:{reference:ref,amount:String(amount),currency:"YER",title:l.title,intent_id:intentId,pay_url:intent.pay_url||intent.checkout_url||null,wallet:{name:wallet.name||wallet.provider?.name||"محفظة التحصيل",account_number:wallet.account_number}}});}catch(e){await pool.query("UPDATE rp_transactions SET status='failed' WHERE id=$1",[tx.rows[0].id]);throw e;}}
  const submitReference=u.pathname.match(/^\/api\/rafidpay\/public\/orders\/(RPE_[A-F0-9]{32})\/reference$/);if(submitReference&&req.method==="POST"){const b=await read(req),reference=String(b.reference||"").replace(/\s+/g,"").slice(0,128);if(!reference)return json(res,400,{error:"REFERENCE_REQUIRED"});const q=await pool.query("SELECT id,esaalat_intent_id,status FROM rp_transactions WHERE reference=$1 AND payment_mode='live'",[submitReference[1]]);if(!q.rowCount||!q.rows[0].esaalat_intent_id)return json(res,404,{error:"ORDER_NOT_FOUND"});if(q.rows[0].status!=="pending")return json(res,409,{error:"ORDER_NOT_PENDING"});const token=await esaalatToken();const result=await esaalat("/intents/"+encodeURIComponent(q.rows[0].esaalat_intent_id)+"/",{method:"PATCH",headers:{Authorization:"Bearer "+token},body:JSON.stringify({reference})});if(String(result.status||"").toUpperCase()==="VERIFIED")await pool.query("UPDATE rp_transactions SET status='paid',paid_at=COALESCE(paid_at,now()) WHERE id=$1",[q.rows[0].id]);return json(res,200,{ok:true,status:result.status||"PENDING",order_id:submitReference[1]});}
