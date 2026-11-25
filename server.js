@@ -150,7 +150,8 @@ async function heroCountryDictionary(){
   const r=await fetch("https://partners-api.hero-sms.com/api/v1/dictionaries/countries",{headers:{Accept:"application/json"}});
   if(!r.ok)throw new Error("COUNTRY_DICTIONARY_HTTP_"+r.status);
   const data=await r.json();
-  const rows=Array.isArray(data)?data:(data.data||data.countries||[]);
+  const rawRows=Array.isArray(data)?data:(data.data||data.countries||[]);
+  const rows=Array.isArray(rawRows)?rawRows:Object.entries(rawRows).map(([id,item])=>({id,...item}));
   const byId=new Map();
   const display=new Intl.DisplayNames(["ar"],{type:"region"});
   for(const item of rows){
