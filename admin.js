@@ -9,7 +9,7 @@ let allUsers=[],allOrders=[],allTransactions=[],orderFilter="all";
 function renderUsers(){
  const query=String($("user-search")?.value||"").trim().toLowerCase();
  const rows=allUsers.filter(user=>[user.id,user.email,user.phone,user.role].join(" ").toLowerCase().includes(query));
- $("users").innerHTML=rows.length?rows.map(user=>'<div class="item"><div class="item-head"><b>عميل #'+user.id+'</b><span class="pill">'+(user.role==="admin"?"مدير":"عميل")+'</span></div><div>'+safe(user.email||user.phone||"بدون بيانات تواصل")+'</div><div>📱 '+safe(user.phone||"لا يوجد رقم هاتف")+'</div><div>رصيد المحفظة: <b>'+money(user.wallet_balance)+'</b></div><small>تاريخ التسجيل: '+date(user.created_at)+'</small></div>').join(""):'<div class="item">لا توجد نتائج مطابقة.</div>';
+ $("users").innerHTML=rows.length?rows.map(user=>'<div class="item"><div class="item-head"><b>عميل #'+user.id+'</b><span class="pill">'+(user.role==="admin"?"مدير":"عميل")+'</span></div><div>'+safe(user.email||user.phone||"بدون بيانات تواصل")+'</div><div> '+safe(user.phone||"لا يوجد رقم هاتف")+'</div><div>رصيد المحفظة: <b>'+money(user.wallet_balance)+'</b></div><small>تاريخ التسجيل: '+date(user.created_at)+'</small></div>').join(""):'<div class="item">لا توجد نتائج مطابقة.</div>';
 }
 function renderOrders(){
  const query=String($("order-search")?.value||"").trim().toLowerCase();
