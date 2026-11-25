@@ -4,7 +4,7 @@
 <title>شحن الرصيد | طلباتي نمبر</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/portal.css?v=2">
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/portal.css?v=3">
 </head><body class="portal-body dashboard-page"><div class="noise"></div><div class="dash-shell">
 <header class="dash-topbar"><a class="brand" href="/"><span class="brand-icon">T</span><span>طلباتي<span class="grad"> نمبر</span><small>TALABATI NUMBERS</small></span></a>
 <div class="dash-top-actions"><a class="dash-home" href="/dashboard.html">شراء الأرقام</a><button id="logout" class="dash-logout">تسجيل الخروج ↗</button></div></header>
@@ -66,7 +66,7 @@
 <section class="purchase-panel payment-panel" id="payment">
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن الرصيد</div><h2>إيداع يدوي للمحفظة</h2><p>حوّل المبلغ ثم أرسل رقم العملية والإثبات. لن يُضاف الرصيد قبل مراجعة الإدارة.</p></div><div class="purchase-symbol">⇧</div></div>
 <div class="exchange-banner"><b>سعر الصرف الثابت</b><strong>1 USD = 560 YER</strong></div>
-<div class="payment-method-heading">اختر وسيلة الدفع</div><div class="payment-method-grid" id="payment-method-grid"><button type="button" class="payment-method-tile selected" data-pay-method="fulusak"><span>💳</span><b>فلوسك</b></button><button type="button" class="payment-method-tile" data-pay-method="onecash"><span>💠</span><b>ون كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="cash"><span>💵</span><b>كاش</b></button></div><select id="pay-method" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="fulusak">فلوسك</option><option value="onecash">ون كاش</option><option value="cash">كاش</option></select><div class="field-box payment-currency"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
+<div class="payment-method-heading">اختر وسيلة الدفع</div><div class="payment-method-grid" id="payment-method-grid"><button type="button" class="payment-method-tile selected" data-pay-method="fulusak"><span>💳</span><b>فلوسك</b></button><button type="button" class="payment-method-tile" data-pay-method="onecash"><span>💠</span><b>ون كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="cash"><span>💵</span><b>كاش</b></button><button type="button" class="payment-method-tile shamcash-tile" data-pay-method="shamcash"><span>🏦</span><b>شام كاش</b></button></div><select id="pay-method" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="fulusak">فلوسك</option><option value="onecash">ون كاش</option><option value="cash">كاش</option><option value="shamcash">شام كاش</option></select><div class="field-box payment-currency"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
 <div class="payment-destination" id="payment-destination">تعليمات وبيانات التحويل ستظهر هنا.</div>
 <div class="purchase-fields">
 <div class="field-box"><label for="pay-amount">المبلغ المحوّل</label><input id="pay-amount" type="number" min="1" step="0.01" placeholder="أدخل المبلغ"></div>
@@ -81,7 +81,7 @@
 
 <section class="dash-list-panel payment-history"><div class="list-heading"><div><h2>طلبات الشحن</h2><p>تابع حالة مراجعة حوالاتك</p></div><span class="list-mark">03</span></div><div id="payment-requests" class="dash-list-content">جارٍ التحميل...</div></section>
 <footer class="dash-footer"><span>© 2026 طلباتي نمبر</span><span>منصتك للأرقام الافتراضية</span></footer>
-</main></div><script src="/recharge.js"></script>
+</main></div><script src="/recharge.js?v=3"></script>
 <style>
 /* Premium dark inputs for direct top-up forms */
 #jeeb-topup .binance-topup-row,#binance-topup .binance-topup-row{gap:15px;margin-top:22px}
