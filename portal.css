@@ -163,3 +163,18 @@
  .dashboard-page .customer-insight-values b{font-size:16px}
  .dashboard-page .customer-insight-values small{font-size:9px}
 }
+
+
+/* Polished interaction layer: subtle motion, readable instructions, and mobile touch states */
+.payment-destination{white-space:pre-line;overflow-wrap:anywhere;line-height:2.05;text-align:right;unicode-bidi:plaintext}
+.dashboard-page .dash-stat,.dashboard-page .purchase-panel,.dashboard-page .customer-insight-card,.dashboard-page .support-ticket,.dashboard-page .wallet-recharge-cta{transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease}
+.dashboard-page .dash-stat:hover,.dashboard-page .customer-insight-card:hover{transform:translateY(-3px);border-color:#8b7cff55;box-shadow:0 16px 40px #03081766}
+.dashboard-page .purchase-panel{animation:portalRise .48s both}
+.dashboard-page .wallet-recharge-cta:hover{transform:translateY(-2px);border-color:#a99bff;box-shadow:0 15px 36px #7668ff25}
+.dashboard-page button:focus-visible,.dashboard-page a:focus-visible,.recharge-page button:focus-visible,.recharge-page a:focus-visible{outline:2px solid #75dbe7;outline-offset:3px}
+.dashboard-page .dash-buy,.dashboard-page .action,.dashboard-page .customer-page-tab,.dashboard-page .provider-tab,.dashboard-page .service-tile,.dashboard-page .country-trigger{transition:transform .18s ease,filter .18s ease,border-color .18s ease,background .18s ease}
+.dashboard-page .dash-buy:active,.dashboard-page .action:active,.dashboard-page .customer-page-tab:active,.dashboard-page .provider-tab:active,.dashboard-page .service-tile:active{transform:scale(.985)}
+.dashboard-page .country-option{transition:background .16s ease,transform .16s ease}
+.dashboard-page .country-option:hover{transform:translateX(-2px)}
+@keyframes portalRise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.dashboard-page *,.recharge-page *{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
