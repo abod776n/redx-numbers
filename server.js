@@ -37,6 +37,7 @@ async function initDb(){
  CREATE INDEX IF NOT EXISTS sessions_token_idx ON sessions(token_hash);
  CREATE TABLE IF NOT EXISTS wallet_transactions(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),kind TEXT NOT NULL,amount NUMERIC(14,4) NOT NULL,description TEXT NOT NULL,reference TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
  CREATE TABLE IF NOT EXISTS number_orders(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),provider_order_id TEXT,service TEXT NOT NULL,country_code TEXT NOT NULL,country_name TEXT,phone_number TEXT,provider_price NUMERIC(14,4),sale_price NUMERIC(14,4),status TEXT NOT NULL,code TEXT,passcode TEXT,expires_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
+ ALTER TABLE number_orders ADD COLUMN IF NOT EXISTS wallet_charged BOOLEAN NOT NULL DEFAULT TRUE;
  CREATE INDEX IF NOT EXISTS number_orders_user_idx ON number_orders(user_id,created_at DESC);
 
  CREATE TABLE IF NOT EXISTS herosms_orders(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),activation_id TEXT,service TEXT NOT NULL,country_code TEXT NOT NULL,country_name TEXT,phone_number TEXT,provider_price NUMERIC(14,4),sale_price NUMERIC(14,4),status TEXT NOT NULL,code TEXT,sms_text TEXT,expires_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
@@ -293,10 +294,10 @@ async function handleApi(req,res,url){
   try{
    await client.query("BEGIN");
    const lock=await client.query("SELECT wallet_balance FROM users WHERE id=$1 FOR UPDATE",[user.id]);
-   if(Number(lock.rows[0].wallet_balance)<sale){await client.query("ROLLBACK");return json(res,402,{error:"INSUFFICIENT_WALLET",required:sale,balance:Number(lock.rows[0].wallet_balance)});}
-   await client.query("UPDATE users SET wallet_balance=wallet_balance-$1 WHERE id=$2",[sale,user.id]);
-   const ins=await client.query("INSERT INTO number_orders(user_id,service,country_code,country_name,provider_price,sale_price,status) VALUES($1,$2,$3,$4,$5,$6,'processing') RETURNING id",[user.id,service,country,entry.name_ar||entry.name||country,cost,sale]);
-   await client.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'debit',$2,$3,$4)",[user.id,sale,"حجز رقم "+(entry.name_ar||country),"order:"+ins.rows[0].id]);
+   const held=await client.query("SELECT COALESCE(sum(sale_price),0) AS reserved FROM number_orders WHERE user_id=$1 AND status IN ('processing','waiting','uncertain') AND wallet_charged=false",[user.id]);
+   const balance=Number(lock.rows[0]?.wallet_balance||0),reserved=Number(held.rows[0]?.reserved||0),available=Number((balance-reserved).toFixed(4));
+   if(available<sale){await client.query("ROLLBACK");return json(res,402,{error:"INSUFFICIENT_WALLET",required:sale,balance, reserved, available, shortfall:Number((sale-available).toFixed(4)),message:"رصيدك المتاح بعد حجوزات الطلبات الحالية غير كافٍ."});}
+   const ins=await client.query("INSERT INTO number_orders(user_id,service,country_code,country_name,provider_price,sale_price,status,wallet_charged) VALUES($1,$2,$3,$4,$5,$6,'processing',false) RETURNING id",[user.id,service,country,entry.name_ar||entry.name||country,cost,sale]);
    await client.query("COMMIT");
    const localId=ins.rows[0].id;
    let result;
@@ -304,11 +305,11 @@ async function handleApi(req,res,url){
    catch(e){await pool.query("UPDATE number_orders SET status='uncertain',updated_at=now() WHERE id=$1",[localId]);return json(res,202,{status:"uncertain",order_id:localId,message:"نتيجة الشراء غير مؤكدة. لا تكرر الطلب؛ تتم المراجعة قبل أي استرداد."});}
    const d=result.data;
    if(d.status==="ok"){
-    await pool.query("UPDATE number_orders SET provider_order_id=$1,phone_number=$2,status='waiting',expires_at=now()+($3 * interval '1 second'),updated_at=now() WHERE id=$4",[String(d.order_id),d.Number,Number(d.expires_in)||3600,localId]);
-    return json(res,201,{status:"ok",order_id:localId,number:d.Number,country:entry.name_ar||entry.name,price:sale,expires_in:d.expires_in});
+    await pool.query("UPDATE number_orders SET provider_order_id=$1,phone_number=$2,status='waiting',expires_at=now()+interval '24 hours',updated_at=now() WHERE id=$3",[String(d.order_id),d.Number,localId]);
+    return json(res,201,{status:"ok",order_id:localId,number:d.Number,country:entry.name_ar||entry.name,price:sale,expires_in:86400,guarantee_hours:24,charge_on_code:true});
    }
    if(d.code==="UNCERTAIN"||result.httpStatus===202){await pool.query("UPDATE number_orders SET status='uncertain',updated_at=now() WHERE id=$1",[localId]);return json(res,202,{status:"uncertain",order_id:localId,message:"الشراء قيد المراجعة؛ لا تكرر الطلب."});}
-   await pool.query("BEGIN");await pool.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[sale,user.id]);await pool.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,$3,$4)",[user.id,sale,"استرداد طلب فاشل","order:"+localId]);await pool.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1",[localId]);await pool.query("COMMIT");
+   const refundClient=await pool.connect();try{await refundClient.query("BEGIN");await refundClient.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND wallet_charged=false",[localId]);await refundClient.query("COMMIT");}catch(x){await refundClient.query("ROLLBACK");throw x;}finally{refundClient.release();}
    return json(res,result.httpStatus||400,{status:"error",code:d.code||"PROVIDER_ERROR",message:d.message||"تعذر توفير الرقم وتم رد المبلغ."});
   }catch(e){try{await client.query("ROLLBACK");}catch{}throw e;}finally{client.release();}
  }
@@ -320,8 +321,8 @@ async function handleApi(req,res,url){
   if(["refunded","uncertain"].includes(o.status))return json(res,200,{status:o.status});
   if(!o.provider_order_id)return json(res,409,{error:"ORDER_NOT_READY"});
   const r=await provider({action:"getCode",order_id:o.provider_order_id});
-  if(r.data.status==="ok"){await pool.query("UPDATE number_orders SET status='done',code=$1,passcode=$2,updated_at=now() WHERE id=$3",[r.data.code,r.data.pass||"",o.id]);return json(res,200,{status:"ok",code:r.data.code,pass:r.data.pass||""});}
-  if(r.data.code==="EXPIRED"||r.data.code==="REFUNDED"){const c=await pool.connect();try{await c.query("BEGIN");const changed=await c.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND status='waiting' RETURNING user_id,sale_price",[o.id]);if(changed.rowCount){await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[changed.rows[0].sale_price,changed.rows[0].user_id]);await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد تلقائي لانتهاء الرقم',$3)",[changed.rows[0].user_id,changed.rows[0].sale_price,"order:"+o.id]);}await c.query("COMMIT");}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}return json(res,200,{status:"refunded",code:r.data.code});}
+  if(r.data.status==="ok"&&r.data.code){const c=await pool.connect();try{await c.query("BEGIN");const current=await c.query("SELECT * FROM number_orders WHERE id=$1 FOR UPDATE",[o.id]);const latest=current.rows[0];if(latest?.status==="waiting"){if(!latest.wallet_charged){const u=await c.query("SELECT wallet_balance FROM users WHERE id=$1 FOR UPDATE",[latest.user_id]);if(Number(u.rows[0]?.wallet_balance||0)<Number(latest.sale_price)){await c.query("ROLLBACK");return json(res,409,{error:"WALLET_CHANGED",message:"تعذر اعتماد الخصم؛ تواصل مع الدعم."});}await c.query("UPDATE users SET wallet_balance=wallet_balance-$1 WHERE id=$2",[latest.sale_price,latest.user_id]);await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'debit',$2,'خصم قيمة الرقم بعد وصول كود التفعيل',$3)",[latest.user_id,latest.sale_price,"order:"+o.id]);}await c.query("UPDATE number_orders SET status='done',code=$1,passcode=$2,wallet_charged=true,updated_at=now() WHERE id=$3",[r.data.code,r.data.pass||"",o.id]);}await c.query("COMMIT");}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}return json(res,200,{status:"ok",code:r.data.code,pass:r.data.pass||""});}
+  if(r.data.code==="EXPIRED"||r.data.code==="REFUNDED"){const c=await pool.connect();try{await c.query("BEGIN");const changed=await c.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND status='waiting' RETURNING user_id,sale_price",[o.id]);if(changed.rowCount&&o.wallet_charged){await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[changed.rows[0].sale_price,changed.rows[0].user_id]);await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد تلقائي لانتهاء الرقم',$3)",[changed.rows[0].user_id,changed.rows[0].sale_price,"order:"+o.id]);}await c.query("COMMIT");}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}return json(res,200,{status:"refunded",code:r.data.code});}
   return json(res,r.httpStatus,{status:r.data.status||"waiting",expires_in:r.data.expires_in});
  }
 
@@ -330,12 +331,12 @@ async function handleApi(req,res,url){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
   const q=await pool.query("SELECT * FROM number_orders WHERE id=$1 AND user_id=$2",[cancelMatch[1],user.id]);const o=q.rows[0];if(!o)return json(res,404,{error:"ORDER_NOT_FOUND"});
   if(o.status==="refunded")return json(res,200,{status:"refunded",message:"تم استرداد قيمة الطلب مسبقاً."});
-  if(!["waiting","done"].includes(o.status)||!o.provider_order_id)return json(res,409,{error:"CANNOT_CANCEL",message:"لا يمكن إلغاء هذا الطلب من حالته الحالية."});
+  if(o.status!=="waiting"||!o.provider_order_id)return json(res,409,{error:"CANNOT_CANCEL",message:"لا يمكن إلغاء الطلب بعد وصول الكود أو بعد انتهاء الانتظار."});
   const r=await provider({action:"cancel",order_id:o.provider_order_id});
   const providerStatus=String(r.data?.status||"").toLowerCase();
   const confirmed=r.httpStatus>=200&&r.httpStatus<300&&(r.data?.success===true||["cancelled","canceled","refunded","success","ok"].includes(providerStatus));
   if(!confirmed)return json(res,409,{error:"CANCEL_NOT_CONFIRMED",message:r.data?.message||"لم يؤكد المزود إلغاء الطلب؛ لم يتم رد الرصيد. تواصل مع الدعم للمراجعة."});
-  const c=await pool.connect();try{await c.query("BEGIN");const changed=await c.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND user_id=$2 AND status IN ('waiting','done') RETURNING user_id,sale_price",[o.id,user.id]);if(!changed.rowCount){await c.query("ROLLBACK");return json(res,409,{error:"ALREADY_PROCESSED"});}await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[changed.rows[0].sale_price,changed.rows[0].user_id]);await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد بعد إلغاء طلب الرقم',$3)",[changed.rows[0].user_id,changed.rows[0].sale_price,"order:"+o.id]);await c.query("COMMIT");return json(res,200,{status:"refunded",message:"تم إلغاء الطلب وإعادة المبلغ إلى محفظتك."});}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
+  const c=await pool.connect();try{await c.query("BEGIN");const changed=await c.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND user_id=$2 AND status='waiting' RETURNING user_id,sale_price,wallet_charged",[o.id,user.id]);if(!changed.rowCount){await c.query("ROLLBACK");return json(res,409,{error:"ALREADY_PROCESSED"});}if(changed.rows[0].wallet_charged){await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[changed.rows[0].sale_price,changed.rows[0].user_id]);await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد بعد إلغاء طلب الرقم',$3)",[changed.rows[0].user_id,changed.rows[0].sale_price,"order:"+o.id]);}await c.query("COMMIT");return json(res,200,{status:"refunded",message:"تم إلغاء الطلب وإعادة المبلغ إلى محفظتك."});}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
  }
 
 
