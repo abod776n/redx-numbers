@@ -264,6 +264,19 @@ async function handleApi(req,res,url){
     return json(res,502,{error:{code:"PROVIDER_REJECTED",message:d.message||"Provider could not issue a number"}});
    }catch(e){await pool.query("UPDATE number_orders SET status='uncertain',updated_at=now() WHERE id=$1 AND status='processing'",[localId]);return json(res,202,{order_id:localId,status:"uncertain",message:"Provider result is uncertain. Check this order before retrying."});}
   }
+  if(req.method==="GET"&&url.pathname==="/api/v1/orders"){
+   const q=await pool.query("SELECT id,phone_number,service,country_code,country_name,sale_price,status,code,expires_at,created_at FROM number_orders WHERE user_id=$1 ORDER BY created_at DESC LIMIT 100",[userId]);return json(res,200,{orders:q.rows});
+  }
+  const cancelMatch=url.pathname.match(/^\/api\/v1\/order\/(\d+)\/cancel$/);
+  if(req.method==="POST"&&cancelMatch){
+   const q=await pool.query("SELECT * FROM number_orders WHERE id=$1 AND user_id=$2",[cancelMatch[1],userId]),o=q.rows[0];if(!o)return json(res,404,{error:{code:"ORDER_NOT_FOUND",message:"Order not found"}});
+   if(o.status==="refunded")return json(res,200,{order_id:o.id,status:"refunded"});
+   if(o.status!=="waiting"||!o.provider_order_id)return json(res,409,{error:{code:"CANNOT_CANCEL",message:"This order cannot be cancelled in its current state"}});
+   const result=await provider({action:"cancel",order_id:o.provider_order_id}),ps=String(result.data?.status||"").toLowerCase();
+   const confirmed=result.httpStatus>=200&&result.httpStatus<300&&(result.data?.success===true||["cancelled","canceled","refunded","success","ok"].includes(ps));
+   if(!confirmed)return json(res,409,{error:{code:"CANCEL_NOT_CONFIRMED",message:"Provider did not confirm cancellation; no refund was issued"}});
+   const c=await pool.connect();try{await c.query("BEGIN");const changed=await c.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND user_id=$2 AND status='waiting' RETURNING user_id,sale_price,wallet_charged",[o.id,userId]);if(!changed.rowCount){await c.query("ROLLBACK");return json(res,409,{error:{code:"ALREADY_PROCESSED",message:"Order already processed"}});}if(changed.rows[0].wallet_charged){await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[changed.rows[0].sale_price,userId]);await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'استرداد طلب عبر API',$3)",[userId,changed.rows[0].sale_price,"api-order:"+o.id]);}await c.query("COMMIT");return json(res,200,{order_id:o.id,status:"refunded",refunded:Number(o.sale_price),currency:"USD"});}catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
+  }
   const statusMatch=url.pathname.match(/^\/api\/v1\/order\/(\d+)$/);
   if(req.method==="GET"&&statusMatch){
    const q=await pool.query("SELECT * FROM number_orders WHERE id=$1 AND user_id=$2",[statusMatch[1],userId]);const o=q.rows[0];if(!o)return json(res,404,{error:{code:"ORDER_NOT_FOUND",message:"Order not found"}});
