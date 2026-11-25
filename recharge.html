@@ -7,30 +7,30 @@
 <link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/portal.css?v=3">
 </head><body class="portal-body dashboard-page"><div class="noise"></div><div class="dash-shell">
 <header class="dash-topbar"><a class="brand" href="/"><span class="brand-icon">T</span><span>طلباتي<span class="grad"> نمبر</span><small>TALABATI NUMBERS</small></span></a>
-<div class="dash-top-actions"><a class="dash-home" href="/dashboard.html">شراء الأرقام</a><button id="logout" class="dash-logout">تسجيل الخروج ↗</button></div></header>
+<div class="dash-top-actions"><a class="dash-home" href="/dashboard.html">شراء الأرقام</a><button id="logout" class="dash-logout">تسجيل الخروج </button></div></header>
 <main class="dash-main">
 <section class="dash-welcome"><div><div class="eyebrow"><i></i> المحفظة والشحن</div><h1>اشحن رصيدك <span class="grad">بسهولة.</span></h1><p>اختر وسيلة الشحن المناسبة، وأرسل بيانات التحويل لمراجعتها.</p></div><div class="welcome-mark">T<span>نمبر</span></div></section>
 <section class="dash-stats"><article class="dash-stat balance-stat"><div class="stat-icon">◇</div><span>رصيد المحفظة</span><strong id="balance">$0.00</strong><small>USD · الرصيد المتاح</small></article><article class="dash-stat"><div class="stat-icon">◎</div><span>حسابك</span><strong class="identity-value" id="identity">جارٍ التحميل...</strong><small>حساب طلباتي نمبر</small></article></section>
 <section class="purchase-panel" id="auto-topup-picker">
-<div class="panel-heading"><div><div class="eyebrow">✦ شحن تلقائي</div><h2>وسائل الشحن التلقائي</h2><p>اختر وسيلة الشحن لفتح نموذج التحويل الخاص بها.</p></div><div class="purchase-symbol">⚡</div></div>
+<div class="panel-heading"><div><div class="eyebrow">✦ شحن تلقائي</div><h2>وسائل الشحن التلقائي</h2><p>اختر وسيلة الشحن لفتح نموذج التحويل الخاص بها.</p></div><div class="purchase-symbol"></div></div>
 <div class="auto-topup-grid">
 <button type="button" class="auto-topup-tile" data-auto-topup="binance"><span>₿</span><b>Binance</b><small>USDT</small></button>
-<button type="button" class="auto-topup-tile jeeb-auto" data-auto-topup="jeeb"><span>📲</span><b>جيب</b><small>ريال يمني</small></button>
+<button type="button" class="auto-topup-tile jeeb-auto" data-auto-topup="jeeb"><span></span><b>جيب</b><small>ريال يمني</small></button>
 </div>
 </section>
 <section class="purchase-panel binance-panel auto-topup-panel" id="binance-topup" hidden>
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · Binance Pay</div><h2>اشحن رصيدك عبر Binance ID</h2><p>حوّل USDT إلى حسابنا، ثم أرسل رقم المعاملة. ستراجع الإدارة التحويل وتضيف الرصيد بعد التأكد.</p></div><div class="purchase-symbol">₿</div></div>
 <div class="binance-receiver"><span>Binance Pay ID الخاص بنا</span><strong id="binance-receiver-id">1276815766</strong><button type="button" id="copy-binance-id">نسخ الرقم</button></div>
 <div class="binance-topup-row"><div class="field-box"><label for="binance-amount">مبلغ التحويل (USDT)</label><input id="binance-amount" type="number" min="1" max="10000" step="0.01" placeholder="مثال: 10"></div><div class="field-box"><label for="binance-transaction-id">رقم المعاملة (Transaction ID)</label><input id="binance-transaction-id" type="text" maxlength="100" placeholder="الصق رقم المعاملة هنا"></div></div>
-<button class="dash-buy" id="binance-pay-button">إرسال إثبات التحويل للمراجعة ↗</button>
+<button class="dash-buy" id="binance-pay-button">إرسال إثبات التحويل للمراجعة </button>
 <p id="binance-message" class="dash-message" role="status">سيظهر طلبك قيد المراجعة. لن يُضاف الرصيد إلا بعد تأكيد الإدارة وصول التحويل. رقم المعاملة لا يمكن إرساله مرتين.</p>
 <div id="binance-history" class="binance-history"></div>
 </section>
 <section class="purchase-panel binance-panel auto-topup-panel" id="jeeb-topup" hidden style="border-color:#35b7a855;background:radial-gradient(ellipse at 95% 0%,#35b7a822,transparent 45%),linear-gradient(145deg,#122b2a,#0b1722)">
-<div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · JE E B</div><h2>اشحن رصيدك عبر محفظة جيب</h2><p>حوّل المبلغ إلى محفظة جيب، ثم أدخل رقم العملية لإرسال طلب الشحن للمراجعة.</p></div><div class="purchase-symbol">📲</div></div>
+<div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · JE E B</div><h2>اشحن رصيدك عبر محفظة جيب</h2><p>حوّل المبلغ إلى محفظة جيب، ثم أدخل رقم العملية لإرسال طلب الشحن للمراجعة.</p></div><div class="purchase-symbol"></div></div>
 <div class="binance-receiver" style="border-color:#35b7a855"><span>رقم محفظة جيب</span><strong id="jeeb-receiver-id" style="color:#6fe2c4">776531367</strong><button type="button" id="copy-jeeb-id" style="border-color:#35b7a855;background:#35b7a81a;color:#9af0d8">نسخ الرقم</button></div>
 <div class="binance-topup-row"><div class="field-box"><label for="jeeb-amount">مبلغ التحويل (ريال يمني)</label><input id="jeeb-amount" type="number" min="560" max="100000000" step="1" placeholder="مثال: 5600"></div><div class="field-box"><label for="jeeb-transaction-id">رقم العملية</label><input id="jeeb-transaction-id" type="text" maxlength="120" placeholder="أدخل رقم حوالة جيب"></div></div>
-<button class="dash-buy" id="jeeb-pay-button" style="background:linear-gradient(110deg,#159b83,#08715f)">إرسال إثبات التحويل للمراجعة ↗</button>
+<button class="dash-buy" id="jeeb-pay-button" style="background:linear-gradient(110deg,#159b83,#08715f)">إرسال إثبات التحويل للمراجعة </button>
 <p id="jeeb-message" class="dash-message" role="status">أدخل المبلغ ورقم العملية بعد التحويل. ستراجع الإدارة الحوالة وتضيف الرصيد بعد التأكد من وصولها.</p>
 </section>
 <style>
@@ -66,7 +66,7 @@
 <section class="purchase-panel payment-panel" id="payment">
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن الرصيد</div><h2>إيداع يدوي للمحفظة</h2><p>حوّل المبلغ ثم أرسل رقم العملية والإثبات. لن يُضاف الرصيد قبل مراجعة الإدارة.</p></div><div class="purchase-symbol">⇧</div></div>
 <div class="exchange-banner"><b>سعر الصرف الثابت</b><strong>1 USD = 560 YER</strong></div>
-<div class="payment-method-heading">اختر وسيلة الدفع</div><div class="payment-method-grid" id="payment-method-grid"><button type="button" class="payment-method-tile selected" data-pay-method="fulusak"><span>💳</span><b>فلوسك</b></button><button type="button" class="payment-method-tile" data-pay-method="onecash"><span>💠</span><b>ون كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="cash"><span>💵</span><b>كاش</b></button><button type="button" class="payment-method-tile shamcash-tile" data-pay-method="shamcash"><span>🏦</span><b>شام كاش</b></button></div><select id="pay-method" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="fulusak">فلوسك</option><option value="onecash">ون كاش</option><option value="cash">كاش</option><option value="shamcash">شام كاش</option></select><div class="field-box payment-currency"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
+<div class="payment-method-heading">اختر وسيلة الدفع</div><div class="payment-method-grid" id="payment-method-grid"><button type="button" class="payment-method-tile selected" data-pay-method="fulusak"><span></span><b>فلوسك</b></button><button type="button" class="payment-method-tile" data-pay-method="onecash"><span></span><b>ون كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="cash"><span></span><b>كاش</b></button><button type="button" class="payment-method-tile shamcash-tile" data-pay-method="shamcash"><span></span><b>شام كاش</b></button></div><select id="pay-method" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="fulusak">فلوسك</option><option value="onecash">ون كاش</option><option value="cash">كاش</option><option value="shamcash">شام كاش</option></select><div class="field-box payment-currency"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
 <div class="payment-destination" id="payment-destination">تعليمات وبيانات التحويل ستظهر هنا.</div>
 <div class="purchase-fields">
 <div class="field-box"><label for="pay-amount">المبلغ المحوّل</label><input id="pay-amount" type="number" min="1" step="0.01" placeholder="أدخل المبلغ"></div>
@@ -80,7 +80,7 @@
 <section class="dash-list-panel payment-history"><div class="list-heading"><div><h2>طلبات الشحن</h2><p>حالة مراجعة الحوالات اليدوية</p></div><span class="list-mark">03</span></div><div id="payment-requests" class="dash-list-content">جارٍ التحميل...</div></section>
 
 <section class="dash-list-panel payment-history"><div class="list-heading"><div><h2>طلبات الشحن</h2><p>تابع حالة مراجعة حوالاتك</p></div><span class="list-mark">03</span></div><div id="payment-requests" class="dash-list-content">جارٍ التحميل...</div></section>
-<footer class="dash-footer"><span>© 2026 طلباتي نمبر</span><span>منصتك للأرقام الافتراضية</span></footer>
+<footer class="dash-footer"><span> 2026 طلباتي نمبر</span><span>منصتك للأرقام الافتراضية</span></footer>
 </main></div><script src="/recharge.js?v=3"></script>
 <style>
 /* Premium dark inputs for direct top-up forms */
