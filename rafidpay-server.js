@@ -99,9 +99,13 @@ async function route(req,res,u){
   const m=await pool.query("SELECT id,status FROM rp_merchants WHERE user_id=$1",[user.id]);
   if(!m.rowCount)return json(res,404,{error:"MERCHANT_NOT_FOUND"});
   if(m.rows[0].status!=="active")return json(res,403,{error:"MERCHANT_NOT_ACTIVE"});
-  const token=await esaalatToken(),data=await esaalat("/wallets/?include_test=1",{headers:{Authorization:"Bearer "+token}});
-  const wallets=Array.isArray(data)?data:(data.results||data.data||[]),w=wallets.find(x=>x.is_test===true);
-  return json(res,200,{available:!!w,wallet:w?{name:w.name||"محفظة الاختبار",account_number:w.account_number||"",currency:w.currency||"YER"}:null,message:w?"محفظة الاختبار متاحة.":"لا توجد محفظة اختبار مفعّلة لهذا الحساب."});
+  if(!process.env.ESAALAT_CLIENT_ID||!process.env.ESAALAT_CLIENT_SECRET)return json(res,503,{error:"ESAALAT_CREDENTIALS_MISSING",message:"بيانات Client ID أو Client Secret غير موجودة في متغيرات الخدمة."});
+  const token=await esaalatToken();
+  const data=await esaalat("/wallets/",{headers:{Authorization:"Bearer "+token}});
+  const wallets=Array.isArray(data)?data:(data.results||data.data||data.wallets||[]);
+  const configured=String(process.env.ESAALAT_WALLET_ACCOUNT_NUMBER||"").replace(/\\D/g,"");
+  const selected=wallets.find(w=>String(w.account_number||"").replace(/\\D/g,"")===configured)||(wallets.length===1?wallets[0]:null);
+  return json(res,200,{connected:true,wallet_count:wallets.length,selected_wallet:selected?{id:selected.id,name:selected.name||selected.provider?.name||"محفظة إيصالات",account_number:selected.account_number||"",currency:selected.currency||"YER"}:null,wallets:wallets.map(w=>({name:w.name||w.provider?.name||"محفظة",account_number:w.account_number||"",currency:w.currency||"YER"})),configured_account:configured||null,message:wallets.length?"تم الاتصال بإيصالات بنجاح وتم جلب المحافظ.":"تم الاتصال بإيصالات، لكن الحساب لا يحتوي على محافظ تحصيل."});
  }
  if(u.pathname==="/api/rafidpay/test/create"&&req.method==="POST"){
   if(!user)return json(res,401,{error:"AUTH_REQUIRED"});
