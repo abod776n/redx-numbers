@@ -11,7 +11,7 @@
 <div class="noise"></div><div class="dash-shell">
 <header class="dash-topbar">
 <a class="brand" href="/"><span class="brand-icon">T</span><span>طلباتي<span class="grad"> نمبر</span><small>TALABATI NUMBERS</small></span></a>
-<div class="dash-top-actions"><a class="dash-home" href="/developers.html">بوابة API</a><a class="dash-home" href="/">الرئيسية</a><button id="logout" class="dash-logout">تسجيل الخروج ↗</button></div>
+<div class="dash-top-actions"><a class="dash-home" href="/developers.html">بوابة API</a><a class="dash-home" href="/">الرئيسية</a><button id="logout" class="dash-logout">تسجيل الخروج </button></div>
 </header>
 <main class="dash-main">
 <section class="dash-welcome">
@@ -21,7 +21,7 @@
 <section class="dash-stats">
 <article class="dash-stat balance-stat"><div class="stat-icon">◇</div><span>رصيد المحفظة</span><strong id="balance">$0.00</strong><small>USD · الرصيد المتاح</small></article>
 <article class="dash-stat"><div class="stat-icon">◎</div><span>حسابك</span><strong class="identity-value" id="identity">جارٍ التحميل...</strong><small>حساب طلباتي نمبر</small></article>
-<article class="dash-stat"><div class="stat-icon">↗</div><span>خدمات المنصة</span><strong>WhatsApp <i>·</i> Telegram</strong><small></small></article>
+<article class="dash-stat"><div class="stat-icon"></div><span>خدمات المنصة</span><strong>WhatsApp <i>·</i> Telegram</strong><small></small></article>
 </section>
 <a class="wallet-recharge-cta" href="/recharge.html"><span class="wallet-recharge-icon">⇧</span><span class="wallet-recharge-copy"><b>شحن محفظتك</b><small>أضف رصيداً إلى حسابك بسهولة</small></span><span class="wallet-recharge-arrow">←</span></a>
 <style>
@@ -32,8 +32,8 @@
 .wallet-recharge-arrow{margin-right:auto;font-size:22px;color:#bcb2ff}
 </style>
 <nav class="customer-page-nav" aria-label="التنقل بين صفحات العميل">
-<button type="button" class="customer-page-tab active" data-customer-page="buy">🛒 شراء الأرقام</button>
-<button type="button" class="customer-page-tab" data-customer-page="recharge">💳 شحن المحفظة</button>
+<button type="button" class="customer-page-tab active" data-customer-page="buy"> شراء الأرقام</button>
+<button type="button" class="customer-page-tab" data-customer-page="recharge"> شحن المحفظة</button>
 </nav><section id="customer-buy-view" class="customer-page-view"><div class="provider-switch" role="group" aria-label="اختيار سيرفر الأرقام"><button type="button" class="provider-tab active" data-provider-tab="main">السيرفر الأول</button><button type="button" class="provider-tab" data-provider-tab="hero">سيرفر رقم اثنين · HEROSMS</button></div>\n<section class="purchase-panel purchase-panel-buy" id="main-provider-panel">
 <div class="panel-heading"><div><div class="eyebrow">✦ ابدأ الآن</div><h2>شراء رقم جديد</h2><p>اختر الخدمة والدولة لعرض التوفر والسعر.</p></div><div class="purchase-symbol">＋</div></div>
 <div class="service-choice" role="group" aria-label="اختر الخدمة">
@@ -42,7 +42,7 @@
  </div>
  <select id="service" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="wa">واتساب</option><option value="tg">تيليجرام</option></select>
  <div class="country-picker-wrap" id="country-picker-wrap"><div class="country-picker-head"><div><label class="country-label" for="country-trigger">اختر الدولة</label><p>اختر الدولة المناسبة، وشاهد السعر والتوفر بوضوح</p></div><span class="country-count" id="country-count">جارٍ التحميل</span></div>
- <button type="button" id="country-trigger" class="country-trigger"><span class="country-trigger-flag" id="country-trigger-flag">🌍</span><span class="country-trigger-copy"><b id="country-trigger-name">اختر الدولة</b><small id="country-trigger-meta">تظهر الأسعار بعد تحميل الدول</small></span><span class="country-trigger-chevron">⌄</span></button>
+ <button type="button" id="country-trigger" class="country-trigger"><span class="country-trigger-flag" id="country-trigger-flag"></span><span class="country-trigger-copy"><b id="country-trigger-name">اختر الدولة</b><small id="country-trigger-meta">تظهر الأسعار بعد تحميل الدول</small></span><span class="country-trigger-chevron">⌄</span></button>
  <div id="country-dropdown" class="country-dropdown" hidden><div class="country-sort"><span>ترتيب السعر</span><button type="button" class="country-sort-btn active" data-country-sort="asc">الأرخص أولاً ↑</button><button type="button" class="country-sort-btn" data-country-sort="desc">الأغلى أولاً ↓</button></div><div class="country-search-wrap"><span>⌕</span><input id="country-search" type="search" placeholder="ابحث عن دولة أو رمزها..." autocomplete="off"></div><div id="country-options" class="country-options"></div></div>
  <select id="country" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="">اختر الدولة</option></select>
  </div>
@@ -58,7 +58,7 @@
  </div>
  <div class="country-picker-wrap" id="hero-country-picker-wrap">
   <div class="country-picker-head"><div><label class="country-label" for="hero-country-trigger">اختر الدولة</label><p>اختر الدولة المناسبة، وشاهد السعر والتوفر بوضوح</p></div><span class="country-count" id="hero-country-count">جارٍ التحميل</span></div>
-  <button type="button" id="hero-country-trigger" class="country-trigger" aria-expanded="false"><span class="country-trigger-flag" id="hero-country-flag">🌍</span><span class="country-trigger-copy"><b id="hero-country-name">جارٍ تحميل الدول...</b><small id="hero-country-meta">لحظات من فضلك</small></span><span class="country-trigger-chevron">⌄</span></button>
+  <button type="button" id="hero-country-trigger" class="country-trigger" aria-expanded="false"><span class="country-trigger-flag" id="hero-country-flag"></span><span class="country-trigger-copy"><b id="hero-country-name">جارٍ تحميل الدول...</b><small id="hero-country-meta">لحظات من فضلك</small></span><span class="country-trigger-chevron">⌄</span></button>
   <div id="hero-country-dropdown" class="country-dropdown" hidden>
     <div class="country-sort"><span>ترتيب السعر</span><button type="button" class="country-sort-btn active" data-hero-sort="asc">الأرخص أولاً ↑</button><button type="button" class="country-sort-btn" data-hero-sort="desc">الأغلى أولاً ↓</button></div>
     <div class="country-search-wrap"><span>⌕</span><input id="hero-country-search" type="search" placeholder="ابحث عن دولة أو رمزها..." autocomplete="off"></div>
@@ -67,7 +67,7 @@
   <select id="hero-country" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="">اختر الدولة</option></select>
 </div>
  <div class="price-strip" id="hero-price">اختر الدولة لعرض السعر والتوفر.</div>
- <div class="hero-vpn-note"><b>📌 تعليمات مهمة لاستلام رمز التفعيل</b><ol><li>في بعض الحالات قد تحتاج إلى تشغيل VPN حتى تتمكن من استقبال رمز التفعيل.</li><li>إذا تأخر وصول الكود، جرّب تغيير دولة الـ VPN أو إعادة الاتصال.</li><li>اترك صفحة الطلب مفتوحة وتابع تحديث وصول الرسالة.</li><li>تأكد من إدخال الرقم في التطبيق أو الموقع المطلوب بشكل صحيح.</li><li>لا تلغِ الطلب قبل مراجعة حالة الرقم.</li></ol><small>تشغيل VPN ليس ضرورياً دائماً، لكنه قد يساعد في بعض الحالات، ولا يضمن وصول الرمز.</small></div>
+ <div class="hero-vpn-note"><b> تعليمات مهمة لاستلام رمز التفعيل</b><ol><li>في بعض الحالات قد تحتاج إلى تشغيل VPN حتى تتمكن من استقبال رمز التفعيل.</li><li>إذا تأخر وصول الكود، جرّب تغيير دولة الـ VPN أو إعادة الاتصال.</li><li>اترك صفحة الطلب مفتوحة وتابع تحديث وصول الرسالة.</li><li>تأكد من إدخال الرقم في التطبيق أو الموقع المطلوب بشكل صحيح.</li><li>لا تلغِ الطلب قبل مراجعة حالة الرقم.</li></ol><small>تشغيل VPN ليس ضرورياً دائماً، لكنه قد يساعد في بعض الحالات، ولا يضمن وصول الرمز.</small></div>
  <button class="dash-buy" id="hero-buy">شراء من سيرفر رقم اثنين <span>←</span></button><p id="hero-message" class="dash-message" role="status"></p>
  <div class="dash-list-panel" style="margin-top:18px"><div class="list-heading"><div><h2>طلباتي من سيرفر رقم اثنين</h2><p>طلبات HEROSMS فقط</p></div><span class="list-mark">02</span></div><div id="hero-orders" class="dash-list-content">جارٍ تحميل الطلبات...</div></div>
 </section>
@@ -85,8 +85,8 @@
 </section>
 
 <section class="customer-insights-grid" aria-label="ملخص الحساب">
- <article class="customer-insight-card"><span>📊 ملخص نشاطك</span><div class="customer-insight-values"><div><b id="customer-orders-count">—</b><small>إجمالي الطلبات</small></div><div><b id="customer-spent-total">$—</b><small>إجمالي المشتريات</small></div><div><b id="customer-active-count">—</b><small>طلبات نشطة</small></div></div></article>
- <article class="customer-insight-card"><span>🏅 مستوى العضوية</span><strong id="customer-tier">عضو جديد</strong><small id="customer-tier-note">يتحدد المستوى حسب نشاط حسابك</small></article>
+ <article class="customer-insight-card"><span> ملخص نشاطك</span><div class="customer-insight-values"><div><b id="customer-orders-count">—</b><small>إجمالي الطلبات</small></div><div><b id="customer-spent-total">$—</b><small>إجمالي المشتريات</small></div><div><b id="customer-active-count">—</b><small>طلبات نشطة</small></div></div></article>
+ <article class="customer-insight-card"><span> مستوى العضوية</span><strong id="customer-tier">عضو جديد</strong><small id="customer-tier-note">يتحدد المستوى حسب نشاط حسابك</small></article>
 </section>
 <section class="purchase-panel notification-panel"><div class="panel-heading"><div><div class="eyebrow">✦ مركز التنبيهات</div><h2>آخر تحديثات حسابك</h2><p>حالات الطلبات وطلبات شحن المحفظة.</p></div><div class="purchase-symbol">♢</div></div><div id="customer-notifications" class="support-ticket-list">جارٍ تحميل التنبيهات...</div></section>
 <section class="customer-extra-grid">
@@ -98,7 +98,7 @@
  </article>
  <article class="purchase-panel security-panel"><div class="panel-heading"><div><div class="eyebrow">✦ أمان الحساب</div><h2>إدارة الجلسات</h2><p>إذا استخدمت حسابك على جهاز آخر، يمكنك إنهاء الجلسات الأخرى مع إبقاء هذا الجهاز متصلاً.</p></div><div class="purchase-symbol">⌑</div></div><button type="button" class="dash-buy" id="revoke-sessions">إنهاء الجلسات الأخرى</button><p id="security-note" class="dash-message" role="status"></p></article>
 <article class="purchase-panel support-panel">
-  <div class="panel-heading"><div><div class="eyebrow">✦ نحن هنا لمساعدتك</div><h2>مركز الدعم الفني</h2><p>أرسل استفسارك أو بلّغ عن مشكلة في طلبك.</p></div><div class="purchase-symbol">✉</div></div>
+  <div class="panel-heading"><div><div class="eyebrow">✦ نحن هنا لمساعدتك</div><h2>مركز الدعم الفني</h2><p>أرسل استفسارك أو بلّغ عن مشكلة في طلبك.</p></div><div class="purchase-symbol"></div></div>
   <form id="support-form" class="support-form">
    <label for="support-subject">عنوان المشكلة</label><input id="support-subject" maxlength="120" required placeholder="مثال: تأخر وصول كود التفعيل">
    <label for="support-message">التفاصيل</label><textarea id="support-message" rows="3" maxlength="2000" required placeholder="اشرح المشكلة ورقم الطلب إن وجد..."></textarea>
@@ -112,25 +112,25 @@
 <section id="customer-recharge-view" class="customer-page-view" hidden>
 <button type="button" class="customer-back-btn" data-customer-page="buy">← العودة إلى شراء الأرقام</button>
 <section class="purchase-panel" id="auto-topup-picker">
-<div class="panel-heading"><div><div class="eyebrow">✦ شحن تلقائي</div><h2>وسائل الشحن التلقائي</h2><p>اختر وسيلة الشحن لفتح نموذج التحويل الخاص بها.</p></div><div class="purchase-symbol">⚡</div></div>
+<div class="panel-heading"><div><div class="eyebrow">✦ شحن تلقائي</div><h2>وسائل الشحن التلقائي</h2><p>اختر وسيلة الشحن لفتح نموذج التحويل الخاص بها.</p></div><div class="purchase-symbol"></div></div>
 <div class="auto-topup-grid">
 <button type="button" class="auto-topup-tile" data-auto-topup="binance"><span>₿</span><b>Binance</b><small>USDT</small></button>
-<button type="button" class="auto-topup-tile jeeb-auto" data-auto-topup="jeeb"><span>📲</span><b>جيب</b><small>ريال يمني</small></button>
+<button type="button" class="auto-topup-tile jeeb-auto" data-auto-topup="jeeb"><span></span><b>جيب</b><small>ريال يمني</small></button>
 </div>
 </section>
 <section class="purchase-panel binance-panel auto-topup-panel" id="binance-topup" hidden>
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · Binance Pay</div><h2>اشحن رصيدك عبر Binance ID</h2><p>حوّل USDT إلى حسابنا، ثم أرسل رقم المعاملة. ستراجع الإدارة التحويل وتضيف الرصيد بعد التأكد.</p></div><div class="purchase-symbol">₿</div></div>
 <div class="binance-receiver"><span>Binance Pay ID الخاص بنا</span><strong id="binance-receiver-id">1276815766</strong><button type="button" id="copy-binance-id">نسخ الرقم</button></div>
 <div class="binance-topup-row"><div class="field-box"><label for="binance-amount">مبلغ التحويل (USDT)</label><input id="binance-amount" type="number" min="1" max="10000" step="0.01" placeholder="مثال: 10"></div><div class="field-box"><label for="binance-transaction-id">رقم المعاملة (Transaction ID)</label><input id="binance-transaction-id" type="text" maxlength="100" placeholder="الصق رقم المعاملة هنا"></div></div>
-<button class="dash-buy" id="binance-pay-button">إرسال إثبات التحويل للمراجعة ↗</button>
+<button class="dash-buy" id="binance-pay-button">إرسال إثبات التحويل للمراجعة </button>
 <p id="binance-message" class="dash-message" role="status">سيظهر طلبك قيد المراجعة. لن يُضاف الرصيد إلا بعد تأكيد الإدارة وصول التحويل. رقم المعاملة لا يمكن إرساله مرتين.</p>
 <div id="binance-history" class="binance-history"></div>
 </section>
 <section class="purchase-panel binance-panel auto-topup-panel" id="jeeb-topup" hidden style="border-color:#35b7a855;background:radial-gradient(ellipse at 95% 0%,#35b7a822,transparent 45%),linear-gradient(145deg,#122b2a,#0b1722)">
-<div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · JE E B</div><h2>اشحن رصيدك عبر محفظة جيب</h2><p>حوّل المبلغ إلى محفظة جيب، ثم أدخل رقم العملية لإرسال طلب الشحن للمراجعة.</p></div><div class="purchase-symbol">📲</div></div>
+<div class="panel-heading"><div><div class="eyebrow">✦ شحن مباشر · JE E B</div><h2>اشحن رصيدك عبر محفظة جيب</h2><p>حوّل المبلغ إلى محفظة جيب، ثم أدخل رقم العملية لإرسال طلب الشحن للمراجعة.</p></div><div class="purchase-symbol"></div></div>
 <div class="binance-receiver" style="border-color:#35b7a855"><span>رقم محفظة جيب</span><strong id="jeeb-receiver-id" style="color:#6fe2c4">776531367</strong><button type="button" id="copy-jeeb-id" style="border-color:#35b7a855;background:#35b7a81a;color:#9af0d8">نسخ الرقم</button></div>
 <div class="binance-topup-row"><div class="field-box"><label for="jeeb-amount">مبلغ التحويل (ريال يمني)</label><input id="jeeb-amount" type="number" min="560" max="100000000" step="1" placeholder="مثال: 5600"></div><div class="field-box"><label for="jeeb-transaction-id">رقم العملية</label><input id="jeeb-transaction-id" type="text" maxlength="120" placeholder="أدخل رقم حوالة جيب"></div></div>
-<button class="dash-buy" id="jeeb-pay-button" style="background:linear-gradient(110deg,#159b83,#08715f)">إرسال إثبات التحويل للمراجعة ↗</button>
+<button class="dash-buy" id="jeeb-pay-button" style="background:linear-gradient(110deg,#159b83,#08715f)">إرسال إثبات التحويل للمراجعة </button>
 <p id="jeeb-message" class="dash-message" role="status">أدخل المبلغ ورقم العملية بعد التحويل. ستراجع الإدارة الحوالة وتضيف الرصيد بعد التأكد من وصولها.</p>
 </section>
 <style>
@@ -166,7 +166,7 @@
 <section class="purchase-panel payment-panel" id="payment">
 <div class="panel-heading"><div><div class="eyebrow">✦ شحن الرصيد</div><h2>إيداع يدوي للمحفظة</h2><p>حوّل المبلغ ثم أرسل رقم العملية والإثبات. لن يُضاف الرصيد قبل مراجعة الإدارة.</p></div><div class="purchase-symbol">⇧</div></div>
 <div class="exchange-banner"><b>سعر الصرف الثابت</b><strong>1 USD = 560 YER</strong></div>
-<div class="payment-method-heading">اختر وسيلة الدفع</div><div class="payment-method-grid" id="payment-method-grid"><button type="button" class="payment-method-tile selected" data-pay-method="fulusak"><span>💳</span><b>فلوسك</b></button><button type="button" class="payment-method-tile" data-pay-method="onecash"><span>💠</span><b>ون كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="cash"><span>💵</span><b>كاش</b></button><button type="button" class="payment-method-tile shamcash-tile" data-pay-method="shamcash"><span>🏦</span><b>شام كاش</b></button></div><select id="pay-method" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="fulusak">فلوسك</option><option value="onecash">ون كاش</option><option value="cash">كاش</option><option value="shamcash">شام كاش</option></select><div class="field-box payment-currency"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
+<div class="payment-method-heading">اختر وسيلة الدفع</div><div class="payment-method-grid" id="payment-method-grid"><button type="button" class="payment-method-tile selected" data-pay-method="fulusak"><span></span><b>فلوسك</b></button><button type="button" class="payment-method-tile" data-pay-method="onecash"><span></span><b>ون كاش</b></button><button type="button" class="payment-method-tile" data-pay-method="cash"><span></span><b>كاش</b></button><button type="button" class="payment-method-tile shamcash-tile" data-pay-method="shamcash"><span></span><b>شام كاش</b></button></div><select id="pay-method" class="visually-hidden" aria-hidden="true" tabindex="-1"><option value="fulusak">فلوسك</option><option value="onecash">ون كاش</option><option value="cash">كاش</option><option value="shamcash">شام كاش</option></select><div class="field-box payment-currency"><label for="pay-currency">عملة الدفع</label><select id="pay-currency"><option value="USD">دولار أمريكي USD</option><option value="YER">ريال يمني YER</option></select></div>
 <div class="payment-destination" id="payment-destination">تعليمات وبيانات التحويل ستظهر هنا.</div>
 <div class="purchase-fields">
 <div class="field-box"><label for="pay-amount">المبلغ المحوّل</label><input id="pay-amount" type="number" min="1" step="0.01" placeholder="أدخل المبلغ"></div>
@@ -181,7 +181,7 @@
 
 
 
-</section><footer class="dash-footer"><span>© 2026 طلباتي نمبر</span><span>منصتك للأرقام الافتراضية</span></footer>
+</section><footer class="dash-footer"><span> 2026 طلباتي نمبر</span><span>منصتك للأرقام الافتراضية</span></footer>
 </main></div>
 <div id="number-modal" class="number-modal" aria-hidden="true">
  <div class="number-modal-backdrop" data-modal-close></div>
