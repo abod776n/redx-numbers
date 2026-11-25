@@ -60,7 +60,7 @@
     $("hero-country").value = String(code);
     const offer = selectedOffer();
     if (!offer) return;
-    $("hero-country-flag").textContent = flagFor(offer);
+
     $("hero-country-name").textContent = offer.country_name || offer.name_ar || offer.name || ("الدولة " + code);
     $("hero-country-meta").textContent = "$" + Number(offer.price).toFixed(4) +
       " · متاح " + Number(offer.qty || 0) + " رقم";
