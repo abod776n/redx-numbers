@@ -2,7 +2,7 @@
 const $=id=>document.getElementById(id);
 async function api(url,opts={}){const r=await fetch(url,{...opts,headers:{"Content-Type":"application/json",...(opts.headers||{})}});let d={};try{d=await r.json();}catch{}if(!r.ok)throw new Error(d.error||d.message||"حدث خطأ");return d;}
 function escapeText(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-const methodLabels={fulusak:"فلوسك",jeeb:"جيب",onecash:"ون كاش",cash:"كاش",binance:"Binance / USDT"};let paymentMethods={};
+const methodLabels={fulusak:"فلوسك",jeeb:"جيب",onecash:"ون كاش",cash:"كاش",binance:"Binance / USDT",shamcash:"شام كاش"};let paymentMethods={};
 const money=v=>Number(v||0).toLocaleString("en-US",{maximumFractionDigits:2});
 function updateConversion(){const amount=Number($("pay-amount").value||0),cur=$("pay-currency").value,usd=cur==="USD"?amount:amount/560,yer=cur==="YER"?amount:amount*560;$("pay-conversion").textContent=amount>0?"يعادل تقريباً $"+money(usd)+" USD · "+money(yer)+" ريال يمني":"أدخل المبلغ لحساب قيمته بالدولار.";}
 function updateDestination(){const v=paymentMethods[$("pay-method").value]||"";$("payment-destination").textContent=v||"لم تُضف الإدارة بيانات التحويل لهذه الوسيلة بعد. يرجى التواصل مع الإدارة قبل التحويل.";}
