@@ -12,10 +12,10 @@
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: order-unique-001" \
-  -d '{"service":"tg","country_code":"0"}'</pre><b>مثال JavaScript (على الخادم فقط)</b><pre class="dev-code">const response = await fetch(BASE_URL + "/api/v1/balance", {
+  -d '{"service":"tg","country_code":"0"}'</pre><b>مثال Python (على الخادم فقط)</b><pre class="dev-code">import requests\nBASE = "https://talabati-numbers-website-production.up.railway.app/api/v1"\nHEADERS = {"X-API-Key": "YOUR_API_KEY"}\nbalance = requests.get(BASE + "/balance", headers=HEADERS).json()\nprint(balance)</pre><b>مثال JavaScript (على الخادم فقط)</b><pre class="dev-code">const response = await fetch(BASE_URL + "/api/v1/balance", {
   headers: { Authorization: "Bearer " + process.env.TALABATI_API_KEY }
 });
-const balance = await response.json();</pre><p class="dev-muted">رموز الحالات: waiting = بانتظار الكود، done = وصل الكود، refunded = مسترد، uncertain = قيد المراجعة. أرسل Idempotency-Key فريدًا لكل عملية شراء لمنع تكرارها.</p></section>
+const balance = await response.json();</pre><p class="dev-muted">رموز الحالات: waiting = بانتظار الكود، done = وصل الكود، refunded = مسترد، uncertain = قيد المراجعة. أرسل Idempotency-Key فريدًا لكل عملية شراء لمنع تكرارها. لا تضع المفتاح في الواجهة الأمامية؛ استخدم خادم موقعك أو البوت.</p></section>
 <section class="dev-card"><h2>🛡️ الأمان والاستخدام</h2><ul class="dev-list"><li>لا تضع المفتاح في JavaScript الخاص بالمتصفح.</li><li>استخدم HTTPS فقط.</li><li>أنشئ مفتاحًا منفصلًا لكل بوت أو موقع.</li><li>يمكنك إلغاء أي مفتاح فورًا.</li><li>لا تعاود شراء الطلب إذا كانت حالته قيد المراجعة.</li></ul></section>
 <section class="dev-card"><h2>🧾 آلية الفوترة</h2><ul class="dev-list"><li>الطلب يستخدم رصيد حسابك في طلباتي نمبر.</li><li>تُحجز قيمة الرقم أثناء انتظاره.</li><li>يُعتمد الخصم النهائي عند وصول الكود.</li><li>عند فشل المزود المؤكد لا يتم تحصيل قيمة الطلب.</li></ul></section>
 </div></main><script src="/developers.js?v=1"></script></body></html>
