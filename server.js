@@ -89,6 +89,43 @@ async function provider(params){
 }
 
 // Independent HEROSMS integration. It never calls the original servicesapi.tech provider.
+async function settleExpiredFirstProviderOrders(){
+ if(!pool)return;
+ const due=await pool.query("SELECT id,provider_order_id FROM number_orders WHERE status='waiting' AND provider_order_id IS NOT NULL AND expires_at<=now() ORDER BY expires_at ASC LIMIT 25");
+ for(const item of due.rows){
+  try{
+   const result=await provider({action:"getCode",order_id:item.provider_order_id});
+   const d=result.data||{};
+   const c=await pool.connect();
+   try{
+    await c.query("BEGIN");
+    const q=await c.query("SELECT * FROM number_orders WHERE id=$1 FOR UPDATE",[item.id]);
+    const o=q.rows[0];
+    if(!o||o.status!=="waiting"){await c.query("ROLLBACK");continue;}
+    if(d.status==="ok"&&d.code){
+     if(!o.wallet_charged){
+      const u=await c.query("SELECT wallet_balance FROM users WHERE id=$1 FOR UPDATE",[o.user_id]);
+      if(Number(u.rows[0]?.wallet_balance||0)<Number(o.sale_price)){await c.query("ROLLBACK");continue;}
+      await c.query("UPDATE users SET wallet_balance=wallet_balance-$1 WHERE id=$2",[o.sale_price,o.user_id]);
+      await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'debit',$2,'خصم قيمة الرقم بعد وصول كود التفعيل',$3)",[o.user_id,o.sale_price,"order:"+o.id]);
+     }
+     await c.query("UPDATE number_orders SET status='done',code=$1,passcode=$2,wallet_charged=true,updated_at=now() WHERE id=$3",[String(d.code),String(d.pass||""),o.id]);
+    }else if(["EXPIRED","REFUNDED"].includes(String(d.code||"").toUpperCase())){
+     const changed=await c.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND status='waiting' RETURNING user_id,sale_price,wallet_charged",[o.id]);
+     if(changed.rowCount&&changed.rows[0].wallet_charged){
+      await c.query("UPDATE users SET wallet_balance=wallet_balance+$1 WHERE id=$2",[changed.rows[0].sale_price,changed.rows[0].user_id]);
+      await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'refund',$2,'تعويض تلقائي بعد انتهاء ضمان الرقم',$3)",[changed.rows[0].user_id,changed.rows[0].sale_price,"order:"+o.id]);
+     }
+    }else{
+     // The provider has not confirmed expiry/compensation yet; retain the reservation.
+     await c.query("UPDATE number_orders SET expires_at=now()+interval '30 minutes',updated_at=now() WHERE id=$1 AND status='waiting'",[o.id]);
+    }
+    await c.query("COMMIT");
+   }catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
+  }catch(e){console.error("First provider guarantee check failed for order",item.id,e.message);}
+ }
+}
+
 async function heroRequest(method, endpoint, body){
  const key=process.env.HEROSMS_API_KEY;
  if(!key) throw Object.assign(new Error("مفتاح HEROSMS غير مضبوط في إعدادات الاستضافة."),{status:503});
@@ -497,4 +534,4 @@ async function main(req,res){
 }
 const server=http.createServer((req,res)=>{main(req,res).catch(e=>{console.error(e);if(!res.headersSent)json(res,500,{error:"SERVER_ERROR"});});});
 server.on("error",e=>{console.error("HTTP server failed",e);process.exit(1);});
-(async()=>{try{await initDb();server.listen(port,"0.0.0.0",()=>console.log("Talabati Numbers backend listening on "+port));}catch(e){console.error("Database initialization failed",e);process.exit(1);}})();
+(async()=>{try{await initDb();server.listen(port,"0.0.0.0",()=>console.log("Talabati Numbers backend listening on "+port));setInterval(()=>settleExpiredFirstProviderOrders().catch(e=>console.error("Guarantee worker error",e.message)),5*60*1000);setTimeout(()=>settleExpiredFirstProviderOrders().catch(e=>console.error("Guarantee worker error",e.message)),15000);}catch(e){console.error("Database initialization failed",e);process.exit(1);}})();
