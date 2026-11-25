@@ -104,10 +104,30 @@ nav{padding:10px 0 18px;align-items:center}
  .navlinks{grid-template-columns:1fr 1fr}
  .hero h1{font-size:30px}
 }
+
+/* Light theme */
+body.theme-light{--bg:#f2f6fb;--card:#ffffff;--card2:#f7faff;--line:#d8e2ee;--text:#17263b;--muted:#63748b;background:radial-gradient(circle at 12% 12%,#d9f6f0 0,transparent 28%),radial-gradient(circle at 90% 35%,#e2ebff 0,transparent 32%),linear-gradient(145deg,#f7faff,#edf3fa 55%,#f5f8fc);color:var(--text)}
+body.theme-light .hero h1{background:linear-gradient(100deg,#18334d 15%,#087f78 65%,#477ac5);-webkit-background-clip:text;background-clip:text;color:transparent}
+body.theme-light .heroBox,body.theme-light .panel,body.theme-light .step{background:linear-gradient(150deg,#fff,#f5f8fc);border-color:#d8e2ee;box-shadow:0 14px 35px #27415c12}
+body.theme-light .navlinks a{color:#36516d}
+body.theme-light .navlinks a:hover{background:#e8f1f8;border-color:#d3e0ed}
+body.theme-light .navlinks button.secondary,body.theme-light button.secondary,body.theme-light .btn.secondary{background:#e8eff7;color:#203951;border-color:#d2deeb}
+body.theme-light input,body.theme-light select{background:#fff;color:#17263b;border-color:#ccd8e6}
+body.theme-light .notice{background:#e7f7f3;border-color:#b8e4d9;color:#17665b}
+body.theme-light .output,body.theme-light .item,body.theme-light .code{background:#f6f9fd;border-color:#d8e2ee;color:#263c54}
+body.theme-light .session-pill{background:#e5f7f2;border-color:#b7e5d8;color:#17665b}
+body.theme-light .session-pill.offline{background:#fff0f1;border-color:#f0c9ce;color:#9a3545}
+body.theme-light .payment-method-card{background:linear-gradient(145deg,#fff,#f4f8fc);border-color:#d8e2ee}
+body.theme-light .payment-icon{background:#e0f4ef;color:#167d6c}
+body.theme-light .muted-method .payment-icon{background:#edf0f4;color:#657184}
+body.theme-light .preview-shell{box-shadow:0 20px 45px #27415c18}
+body.theme-light footer{color:#63748b}
+#themeToggle{white-space:nowrap}
+@media(max-width:760px){body.theme-light .navlinks a,body.theme-light .navlinks button{background:#fff;border-color:#d8e2ee;color:#29435d}}
 </style>
 </head>
 <body><main class="wrap">
-<nav><div class="brand"><span class="logo">R</span><span>RafidPay</span></div><div class="navlinks"><a href="/rafidpay/test">صفحة اختبار إيصالات</a><a href="/rafidpay/docs">شرح API والتوثيق</a><a href="/rafidpay">العودة إلى بوابة RafidPay</a><button id="logout" class="secondary" type="button">تسجيل الخروج</button></div></nav>
+<nav><div class="brand"><span class="logo">R</span><span>RafidPay</span></div><div class="navlinks"><button id="themeToggle" class="secondary" type="button" aria-label="تبديل مظهر الصفحة">☀️ الوضع الفاتح</button><a href="/rafidpay/test">صفحة اختبار إيصالات</a><a href="/rafidpay/docs">شرح API والتوثيق</a><a href="/rafidpay">العودة إلى بوابة RafidPay</a><button id="logout" class="secondary" type="button">تسجيل الخروج</button></div></nav>
 <section class="hero">
 <div><div class="eyebrow">بوابة الدفع للتجار والمطورين</div><h1>استقبل مدفوعاتك<br>بسهولة ووضوح.</h1><p>أنشئ مفاتيح API وروابط دفع، واربط متجرك أو تطبيقك مع RafidPay. ابدأ بالخطوات التالية، وستجد أمثلة الربط داخل التوثيق.</p></div>
 <div class="heroBox"><strong>حساب التاجر</strong><p id="state">جارٍ التحقق من حسابك...</p><span id="statusBadge" class="status"><i class="dot"></i> جاري التحميل</span><div id="sessionInfo" class="session-pill"><i class="session-dot"></i><span>جارٍ التحقق من جلسة الدخول...</span></div><div class="notice">مفتاح API سري. لا تضعه داخل تطبيق العميل أو واجهة المتصفح؛ استخدمه في الخادم الخلفي فقط.</div></div>
@@ -198,4 +218,10 @@ function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;",
 $("logout").onclick=async()=>{const b=$("logout");if(b.disabled)return;b.disabled=true;b.textContent="جارٍ تسجيل الخروج...";try{const r=await fetch("/api/logout",{method:"POST",credentials:"same-origin",cache:"no-store"});if(!r.ok)throw Error("Logout failed");sessionStorage.removeItem("rafidpay_key");apiKey="";const check=await fetch("/api/me",{credentials:"same-origin",cache:"no-store"});if(check.status!==401)throw Error("Session still active");$("sessionInfo").classList.add("offline");$("sessionInfo").innerHTML='<i class="session-dot"></i><span>تم تسجيل الخروج بنجاح</span>';$("dashboard").classList.add("hidden");$("registerPanel").classList.add("hidden");$("state").textContent="تم إنهاء جلسة حسابك";$("statusBadge").textContent="غير متصل";b.textContent="تم تسجيل الخروج";setTimeout(()=>location.replace("/rafidpay"),250);}catch(e){b.disabled=false;b.textContent="تسجيل الخروج";alert("لم نتمكن من تأكيد تسجيل الخروج. أعد المحاولة.");}};
 async function showSession(){const pill=$("sessionInfo");try{const r=await fetch("/api/me",{credentials:"same-origin",cache:"no-store"});if(!r.ok){pill.classList.add("offline");pill.innerHTML='<i class="session-dot"></i><span>غير مسجل الدخول إلى طلباتي</span>';$("state").textContent="يلزم تسجيل الدخول إلى طلباتي أولاً";$("statusBadge").textContent="غير متصل";$("dashboard").classList.add("hidden");$("registerPanel").classList.add("hidden");return false;}const d=await r.json();const identity=d.user.phone||d.user.email||("حساب رقم "+d.user.id);pill.classList.remove("offline");pill.innerHTML='<i class="session-dot"></i><span>'+escapeHtml("متصل بحساب طلباتي · "+identity)+'</span>';$("state").textContent="أهلاً بك، حسابك متصل بطلباتي";return true;}catch(e){pill.classList.add("offline");pill.innerHTML='<i class="session-dot"></i><span>تعذر التحقق من جلسة الدخول</span>';$("state").textContent="تعذر التحقق من حسابك";return false;}}
 $("refresh").onclick=refresh;showSession().then(ok=>{if(ok)init();});
+
+const themeToggle=$("themeToggle");
+function applyTheme(mode){const light=mode==="light";document.body.classList.toggle("theme-light",light);themeToggle.textContent=light?"🌙 الوضع الداكن":"☀️ الوضع الفاتح";themeToggle.setAttribute("aria-label",light?"التبديل إلى الوضع الداكن":"التبديل إلى الوضع الفاتح");}
+let savedTheme="dark";try{savedTheme=localStorage.getItem("rafidpay_theme")||"dark"}catch(e){}
+applyTheme(savedTheme);
+themeToggle.addEventListener("click",()=>{const next=document.body.classList.contains("theme-light")?"dark":"light";applyTheme(next);try{localStorage.setItem("rafidpay_theme",next)}catch(e){}});
 </script></body></html>
