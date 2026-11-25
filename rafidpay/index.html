@@ -31,7 +31,7 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:35px 0 0}
 </style>
 </head>
 <body><main class="wrap">
-<nav><div class="brand"><span class="logo">R</span><span>RafidPay</span></div><div class="navlinks"><a href="/rafidpay/docs">شرح API والتوثيق</a><a href="/">العودة إلى طلباتي</a></div></nav>
+<nav><div class="brand"><span class="logo">R</span><span>RafidPay</span></div><div class="navlinks"><a href="/rafidpay/docs">شرح API والتوثيق</a><a href="/">العودة إلى طلباتي</a><button id="logout" class="secondary" type="button">تسجيل الخروج</button></div></nav>
 <section class="hero">
 <div><div class="eyebrow">بوابة الدفع للتجار والمطورين</div><h1>استقبل مدفوعاتك<br>بسهولة ووضوح.</h1><p>أنشئ مفاتيح API وروابط دفع، واربط متجرك أو تطبيقك مع RafidPay. ابدأ بالخطوات التالية، وستجد أمثلة الربط داخل التوثيق.</p></div>
 <div class="heroBox"><strong>حساب التاجر</strong><p id="state">جارٍ التحقق من حسابك...</p><span id="statusBadge" class="status"><i class="dot"></i> جاري التحميل</span><div class="notice">مفتاح API سري. لا تضعه داخل تطبيق العميل أو واجهة المتصفح؛ استخدمه في الخادم الخلفي فقط.</div></div>
@@ -44,8 +44,8 @@ footer{color:var(--muted);font-size:12px;text-align:center;padding:35px 0 0}
 <div class="step"><span class="num">4</span><h3>أنشئ رابط دفع</h3><p>حدد اسم الطلب والمبلغ والعملة، ثم أرسل رابط الدفع إلى العميل.</p></div>
 </section>
 <section id="registerPanel" class="panel">
-<h2>ملف التاجر</h2><p class="hint">بيانات النشاط التجاري الذي سيستقبل المدفوعات.</p>
-<label for="business">اسم النشاط التجاري</label><input id="business" placeholder="مثال: متجر طلباتي">
+<h2>ملف التاجر</h2><p class="hint">أدخل بيانات صاحب الحساب ووسيلة التواصل وعنوان النشاط. قد نطلب التحقق من الهوية عبر مزود تحقق آمن عند الحاجة.</p>
+<label for="ownerName">الاسم الكامل لصاحب الحساب</label><input id="ownerName" autocomplete="name" placeholder="الاسم الرباعي كما في الهوية" required><label for="ownerPhone">رقم الهاتف</label><input id="ownerPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+9677XXXXXXXX" required><label for="businessAddress">عنوان النشاط التجاري بالتفصيل</label><input id="businessAddress" autocomplete="street-address" placeholder="المدينة، المنطقة، الشارع، وأقرب معلم" required><label for="business">اسم النشاط التجاري</label><input id="business" placeholder="مثال: متجر طلباتي" required>
 <label for="country">الدولة</label><select id="country"><option value="YE">اليمن</option><option value="SA">السعودية</option><option value="AE">الإمارات</option><option value="IQ">العراق</option></select>
 <div class="actions"><button id="register">إنشاء ملف تاجر</button></div><p id="registerMsg" class="hint"></p>
 </section>
@@ -80,7 +80,7 @@ async function init(){try{const d=await call("/api/rafidpay/merchant");if(!d.mer
 const m=d.merchant;msg("state","النشاط التجاري: "+m.business_name+" · الحالة: "+m.status);$("statusBadge").innerHTML='<i class="dot"></i> '+(m.status==="active"?"حساب نشط":"قيد المراجعة");
 if(m.status==="active"){$("dashboard").classList.remove("hidden");$("registerPanel").classList.add("hidden");if(apiKey){$("keyout").textContent=apiKey;$("keyout").classList.remove("hidden");$("copyKey").classList.remove("hidden")}await refresh()}else{$("registerPanel").classList.add("hidden");msg("state","ملف التاجر "+m.business_name+" — الحساب بانتظار تفعيل الإدارة.")}}
 catch(e){msg("state","تعذر قراءة ملف التاجر. سجّل الدخول إلى طلباتي أولاً ثم أعد تحميل الصفحة.");$("statusBadge").textContent="يلزم تسجيل الدخول"}}
-$("register").onclick=async()=>{try{const d=await call("/api/rafidpay/merchant",{method:"POST",body:JSON.stringify({business_name:$("business").value,country_code:$("country").value})});msg("registerMsg","تم إنشاء ملف التاجر. الحالة: "+d.merchant.status);await init()}catch(e){msg("registerMsg",e.message)}};
+$("register").onclick=async()=>{try{const d=await call("/api/rafidpay/merchant",{method:"POST",body:JSON.stringify({owner_full_name:$("ownerName").value,owner_phone:$("ownerPhone").value,business_address:$("businessAddress").value,business_name:$("business").value,country_code:$("country").value})});msg("registerMsg","تم إنشاء ملف التاجر. الحالة: "+d.merchant.status);await init()}catch(e){msg("registerMsg",e.message)}};
 $("key").onclick=async()=>{try{const d=await call("/api/rafidpay/keys",{method:"POST",body:JSON.stringify({name:$("keyName").value||"Merchant API"})});apiKey=d.api_key;sessionStorage.setItem("rafidpay_key",apiKey);$("keyout").textContent=apiKey;$("keyout").classList.remove("hidden");$("copyKey").classList.remove("hidden");await refresh()}catch(e){msg("keyout",e.message);$("keyout").classList.remove("hidden")}};
 async function api(url,opt){if(!apiKey)throw Error("أنشئ مفتاح API أولاً");return call(url,Object.assign({},opt||{},{headers:Object.assign({"Authorization":"Bearer "+apiKey},opt&&opt.headers||{})}))}
 $("copyKey").onclick=async()=>{try{await navigator.clipboard.writeText(apiKey);msg("keyout","تم نسخ المفتاح إلى الحافظة. أعد إنشاء المفتاح إذا فقدته.")}catch(e){msg("keyout",apiKey)}};
@@ -88,5 +88,5 @@ $("create").onclick=async()=>{try{const d=await api("/api/rafidpay/v1/payment-li
 $("copyLink").onclick=async()=>{if(lastLink){await navigator.clipboard.writeText(lastLink);msg("linkout","تم نسخ الرابط: "+lastLink)}};
 async function refresh(){if(!apiKey){$("links").innerHTML='<div class="item">أنشئ مفتاح API لعرض الروابط والعمليات.</div>';return}try{const a=await api("/api/rafidpay/v1/payment-links"),b=await api("/api/rafidpay/v1/transactions");$("links").innerHTML=a.payment_links.length?a.payment_links.map(x=>'<div class="item"><b>'+escapeHtml(x.title)+'</b><br>'+x.amount+' '+escapeHtml(x.currency)+'<br><a href="/rafidpay/pay/'+encodeURIComponent(x.slug)+'" target="_blank">فتح صفحة الدفع</a></div>').join(""):'<div class="item">لا توجد روابط دفع حتى الآن.</div>';$("tx").innerHTML=b.transactions.length?b.transactions.map(x=>'<div class="item">'+escapeHtml(x.reference)+' · '+x.amount+' '+escapeHtml(x.currency)+' · '+escapeHtml(x.status)+'</div>').join(""):'<div class="item">لا توجد عمليات مسجلة حتى الآن.</div>'}catch(e){$("links").innerHTML='<div class="item">'+escapeHtml(e.message)+'</div>'}}
 function escapeHtml(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-$("refresh").onclick=refresh;init();
+$("logout").onclick=async()=>{try{await fetch("/api/logout",{method:"POST",credentials:"same-origin"});}finally{sessionStorage.removeItem("rafidpay_key");location.href="/";}};\n$("refresh").onclick=refresh;init();
 </script></body></html>
