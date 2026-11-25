@@ -1,25 +1,94 @@
-<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RafidPay API Docs</title><style>body{margin:0;background:#0b1020;color:#eef3ff;font:15px/1.8 system-ui}.wrap{max-width:950px;margin:30px auto;padding:18px}section{background:#131c31;border:1px solid #293852;border-radius:12px;padding:20px;margin:16px 0}pre{direction:ltr;text-align:left;white-space:pre-wrap;background:#080e1a;padding:14px;border-radius:8px;color:#a8e7dc}a{color:#67d5c2}</style><main class="wrap"><h1>RafidPay — وثائق API</h1><p>الإصدار v1 · REST/JSON · بوابة RafidPay</p><section><h2>المصادقة</h2><p>استخدم مفتاح التاجر في ترويسة Authorization. لا تضع المفتاح في كود المتصفح.</p><pre>Authorization: Bearer rp_test_YOUR_API_KEY
-Content-Type: application/json</pre><p>يتم إنشاء المفتاح من جلسة التاجر المسجل دخوله عبر POST /api/rafidpay/keys بعد تفعيل الحساب. يظهر المفتاح مرة واحدة فقط.</p></section><section><h2>إنشاء حساب تاجر</h2><pre>POST /api/rafidpay/merchant
-Cookie: talabati_session=...
-{"business_name":"متجري","country_code":"YE"}</pre><p>يتطلب تسجيل الدخول إلى طلباتي. الدول المتاحة في النموذج: YE, SA, AE, IQ. حالة الحساب الجديدة pending وتحتاج موافقة الإدارة.</p></section><section><h2>إنشاء مفتاح API</h2><pre>POST /api/rafidpay/keys
-Authorization: Bearer rp_test_EXISTING_KEY
-{"name":"مفتاح المتجر"}</pre></section><section><h2>إنشاء مفتاح API من جلسة التاجر</h2><pre>POST /api/rafidpay/keys\nCookie: talabati_session=...\n{"name":"مفتاح المتجر"}</pre></section><section><h2>إنشاء رابط دفع</h2><pre>POST /api/rafidpay/v1/payment-links
-Authorization: Bearer rp_test_YOUR_API_KEY
-{"title":"فاتورة 102","description":"وصف اختياري","amount":12.5,"currency":"USD"}</pre><p>العملة USD أو YER. تعاد بيانات الرابط العام في الاستجابة.</p></section><section><h2>قائمة روابط الدفع</h2><pre>GET /api/rafidpay/v1/payment-links
-Authorization: Bearer rp_test_YOUR_API_KEY</pre></section><section><h2>تفاصيل رابط عام</h2><pre>GET /api/rafidpay/public/links/{slug}</pre><p>لا يحتاج إلى مصادقة.</p></section><section style="border:1px solid #2bbf9c;background:linear-gradient(135deg,#102d2a,#13233a);box-shadow:0 12px 35px #0004"><h2 style="color:#8fffe0">الدفع الحقيقي عبر إيصالات · LIVE</h2><p><strong>RafidPay متصلة بمزود دفع فعلي هو إيصالات (Esaalat).</strong> تم اختبار مسار التحصيل المباشر وإنشاء طلبات دفع حقيقية عبر حساب إيصالات ومحافظ التحصيل المرتبطة به.</p><ol><li>فحص الاتصال بخوادم إيصالات وجلب محافظ التحصيل.</li><li>إنشاء طلب تحصيل حقيقي بالمبلغ والمحفظة المختارة.</li><li>فتح صفحة الدفع لدى إيصالات ليكمل الدافع العملية بنفسه.</li><li>إرسال مرجع العملية والتحقق من تأكيد مزود الدفع، مع استقبال Webhook موقّع.</li></ol><p>افتح صفحة الدفع المباشر لإجراء عملية فعلية: <a href="/rafidpay/live">RafidPay LIVE — الدفع عبر إيصالات</a>.</p><p>تأكيد الدفع يعتمد على رد إيصالات الموثوق، وليس على مجرد فتح رابط الدفع أو عودة العميل إلى الموقع.</p></section><section><h2>محاكاة الدفع</h2><pre>POST /api/rafidpay/public/links/{slug}/sandbox-pay
-Content-Type: application/json
-{"customer_name":"Customer","customer_email":"customer@example.com"}</pre><p>يعمل فقط عند ضبط RAFIDPAY_SANDBOX_ENABLED=true. ينشئ عملية sandbox_paid ولا يسحب أموالاً.</p></section><section><h2>سجل العمليات</h2><pre>GET /api/rafidpay/v1/transactions
-Authorization: Bearer rp_test_YOUR_API_KEY</pre><p>يعرض آخر 100 عملية للتاجر.</p></section><section><h2>إدارة حسابات التجار</h2><p>للمدير المسجل فقط:</p><pre>GET /api/rafidpay/admin/overview\nGET /api/rafidpay/admin/merchants\nGET /api/rafidpay/admin/keys\nGET /api/rafidpay/admin/links\nGET /api/rafidpay/admin/transactions\nPOST /api/rafidpay/admin/merchant-status\nPOST /api/rafidpay/admin/keys/revoke\nPOST /api/rafidpay/admin/link-status\n{"merchant_id":1}</pre><p>تفعيل التاجر مطلوب قبل استخدام مفاتيح API.</p></section><section><h2>الأخطاء</h2><ul><li>400 INVALID_PAYMENT_LINK — بيانات غير صحيحة.</li><li>401 INVALID_API_KEY — المفتاح غير صالح.</li><li>403 MERCHANT_NOT_ACTIVE — التاجر غير مفعل.</li><li>404 ENDPOINT_NOT_FOUND — المسار غير موجود.</li><li>500 INTERNAL_ERROR — خطأ داخلي.</li></ul></section><section><h2>مثال Node.js</h2><pre>const r = await fetch("https://YOUR_DOMAIN/api/rafidpay/v1/payment-links", {
+<!doctype html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RafidPay | Live API Documentation</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#07111e;color:#edf7ff;font:15px/1.9 system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{max-width:980px;margin:24px auto;padding:18px}.hero,section{background:linear-gradient(145deg,#13263a,#0d192b);border:1px solid #29465d;border-radius:18px;padding:22px;margin:16px 0;box-shadow:0 15px 45px #0003}.hero{border-color:#2e9d88;background:linear-gradient(120deg,#10352f,#13243b 70%,#1b2140)}h1,h2{line-height:1.4}.hero h1{font-size:clamp(26px,5vw,38px);margin:0 0 8px}.eyebrow{color:#8dffe0;font-weight:800}.muted{color:#a9bbcf}.live{display:inline-block;border:1px solid #3ac7a4;background:#104b3d;color:#a1ffe3;border-radius:30px;padding:3px 11px;font-size:12px}pre{direction:ltr;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;background:#050c16;border:1px solid #243a50;border-radius:12px;padding:15px;color:#a8eadb;font:13px/1.7 ui-monospace,monospace}code{color:#9dffe5}a{color:#79e8d0}li{margin:5px 0}.endpoint{direction:ltr;text-align:left;background:#07101d;padding:10px 13px;border-radius:10px;color:#b8d4ff;overflow-wrap:anywhere}.warning{border-right:3px solid #e6b85c;padding:10px 13px;background:#49371633;color:#f4dfb4;border-radius:9px}.ok{color:#9dffe0}
+</style></head><body><main class="wrap">
+<header class="hero"><div class="eyebrow">RAFIDPAY · MERCHANT API</div><h1>توثيق الربط الحقيقي — RafidPay LIVE</h1><p>اربط موقعك ببوابة RafidPay لإنشاء فواتير، وفتح صفحة دفع العميل عبر مزود الدفع إيصالات (Esaalat)، ثم متابعة حالة التحصيل المؤكدة.</p><span class="live">LIVE · ESAALAT</span></header>
+<section><h2>1. قبل البدء</h2><ol><li>أنشئ حساب تاجر في RafidPay وسجّل الدخول.</li><li>أكمل متطلبات التفعيل وانتظر اعتماد حساب التاجر من الإدارة.</li><li>أنشئ مفتاح API من لوحة التاجر، واحفظه في الخادم الخلفي لموقعك.</li></ol><p class="warning">لا تضع مفتاح API داخل JavaScript في المتصفح أو تطبيق العميل. أرسل طلبات API من Backend موقعك فقط.</p></section>
+<section><h2>2. المصادقة</h2><div class="endpoint">Authorization: Bearer rp_live_YOUR_API_KEY</div><pre>Content-Type: application/json
+Authorization: Bearer rp_live_YOUR_API_KEY</pre><p>كل طلبات <code>/api/rafidpay/v1/</code> تتطلب مفتاح تاجر صالحاً وحساباً بحالة active.</p></section>
+<section><h2>3. إنشاء فاتورة دفع</h2><div class="endpoint">POST /api/rafidpay/v1/payment-links</div><pre>{
+  "title": "Order #102",
+  "description": "Customer order",
+  "amount": 2500,
+  "currency": "YER"
+}</pre><p>المبلغ يجب أن يكون عدداً صحيحاً موجباً بالريال اليمني؛ هذا هو نطاق التحصيل المباشر المتاح حالياً عبر إيصالات.</p><h3>استجابة ناجحة — 201</h3><pre>{
+  "payment_link": {
+    "id": 12,
+    "slug": "32-character-link-token",
+    "title": "Order #102",
+    "amount": "2500",
+    "currency": "YER",
+    "status": "active",
+    "mode": "live",
+    "url": "https://YOUR_DOMAIN/rafidpay/pay/SLUG"
+  }
+}</pre><p>أرسل رابط <code>payment_link.url</code> للعميل أو اعرضه له في صفحة الطلب.</p></section>
+<section><h2>4. إنشاء طلب تحصيل حقيقي لدى إيصالات</h2><div class="endpoint">POST /api/rafidpay/v1/payment-links/{slug}/orders</div><pre>{
+  "customer_name": "Customer Name",
+  "customer_email": "customer@example.com"
+}</pre><p>ينفذ هذا المسار من خادم متجرك بعد مصادقة API. ينشئ طلباً لدى إيصالات ويربطه بالفاتورة والتاجر.</p><h3>استجابة ناجحة — 201</h3><pre>{
+  "order": {
+    "reference": "RPE_...",
+    "amount": "2500",
+    "currency": "YER",
+    "status": "pending",
+    "title": "Order #102",
+    "intent_id": "ESAALAT_INTENT_ID",
+    "checkout_url": "https://...",
+    "wallet": {
+      "name": "Collection Wallet",
+      "account_number": "..."
+    }
+  },
+  "payment_url": "https://YOUR_DOMAIN/rafidpay/pay/SLUG"
+}</pre><p>لواجهة العميل، استخدم <code>payment_url</code>؛ صفحة RafidPay Checkout تنشئ طلب الدفع وتعرض تدفق الدفع المباشر عبر تكامل إيصالات.</p><p class="warning">لا تعتبر إنشاء الطلب نجاحاً مالياً. تبقى الحالة pending حتى يؤكد مزود الدفع العملية.</p></section>
+<section><h2>5. التحقق من حالة عملية</h2><div class="endpoint">GET /api/rafidpay/v1/transactions/{reference}</div><pre>Authorization: Bearer rp_live_YOUR_API_KEY</pre><h3>استجابة</h3><pre>{
+  "transaction": {
+    "reference": "RPE_...",
+    "status": "paid",
+    "amount": "2500",
+    "currency": "YER",
+    "payment_mode": "live",
+    "created_at": "...",
+    "paid_at": "..."
+  }
+}</pre><p>الحالات الممكنة تشمل <code>pending</code> و<code>paid</code> و<code>failed</code> و<code>refunded</code>. اعتبر الطلب مدفوعاً فقط عندما تكون الحالة <code>paid</code>.</p><p>يمكن لمتجرك الاستعلام دورياً من الخادم عن حالة المرجع حتى تتغير إلى paid.</p></section>
+<section><h2>6. استعراض الفواتير والعمليات</h2><div class="endpoint">GET /api/rafidpay/v1/payment-links</div><div class="endpoint">GET /api/rafidpay/v1/transactions</div><p>تعيد هذه المسارات آخر 100 فاتورة أو عملية تخص التاجر صاحب المفتاح.</p></section>
+<section><h2>7. مثال Node.js — إنشاء فاتورة</h2><pre>const base = "https://YOUR_DOMAIN";
+const apiKey = process.env.RAFIDPAY_API_KEY;
+
+const response = await fetch(base + "/api/rafidpay/v1/payment-links", {
   method: "POST",
   headers: {
-    "Authorization": "Bearer " + process.env.RAFIDPAY_API_KEY,
+    "Authorization": "Bearer " + apiKey,
     "Content-Type": "application/json"
   },
   body: JSON.stringify({
-    title: "Invoice 102",
-    amount: 12.5,
-    currency: "USD"
+    title: "Order #102",
+    description: "Customer order",
+    amount: 2500,
+    currency: "YER"
   })
 });
-const data = await r.json();
-console.log(data);</pre></section><p><a href="/rafidpay">العودة إلى لوحة التاجر</a></p></main>
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || data.error);
+console.log("Send this checkout URL to the customer:", data.payment_link.url);</pre></section>
+<section><h2>8. مثال Node.js — متابعة الدفع</h2><pre>const reference = "RPE_REFERENCE_FROM_YOUR_ORDER";
+
+const response = await fetch(
+  base + "/api/rafidpay/v1/transactions/" + encodeURIComponent(reference),
+  { headers: { "Authorization": "Bearer " + apiKey } }
+);
+
+const data = await response.json();
+if (!response.ok) throw new Error(data.message || data.error);
+
+if (data.transaction.status === "paid") {
+  // Mark your local order as paid on your server.
+}</pre></section>
+<section><h2>9. رموز الأخطاء</h2><ul><li><code>401 INVALID_API_KEY</code> — مفتاح غير صالح.</li><li><code>403 MERCHANT_NOT_ACTIVE</code> — حساب التاجر غير مفعل.</li><li><code>404 PAYMENT_LINK_NOT_FOUND</code> — رابط الفاتورة غير موجود أو لا يخص هذا التاجر.</li><li><code>404 TRANSACTION_NOT_FOUND</code> — مرجع العملية غير موجود ضمن حساب التاجر.</li><li><code>400 ESAALAT_REQUIRES_WHOLE_YER_AMOUNT</code> — يلزم مبلغ صحيح بالريال اليمني.</li><li><code>503 ESAALAT_WALLET_NOT_FOUND</code> — تعذر تحديد محفظة التحصيل.</li></ul></section>
+<section><h2>10. ملاحظات التكامل</h2><ul><li>التحصيل المباشر في هذا التكامل يستخدم إيصالات (Esaalat).</li><li>العملة المدعومة في مسار التحصيل الحالي: YER وبمبلغ صحيح دون كسور.</li><li>تأكيد الدفع يعتمد على حالة العملية التي يسجلها RafidPay بعد تحقق مزود الدفع.</li><li>واجهة API الحالية توفر الاستعلام عن الحالة (Polling)؛ لا يوجد حالياً Webhook صادر إلى موقع التاجر، لذلك لا تبنِ تكاملك على استقبال Callback من RafidPay.</li><li>مسار <code>sandbox-pay</code> منفصل للاختبار البرمجي ولا يمثل عملية تحصيل فعلية.</li></ul></section>
+<p><a href="/rafidpay/dashboard">العودة إلى لوحة التاجر</a> · <a href="/rafidpay/live">صفحة الدفع المباشر</a></p>
+</main></body></html>
