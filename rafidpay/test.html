@@ -17,34 +17,22 @@ label{display:block;font-weight:700;margin:12px 0 6px}input{width:100%;padding:1
 <p class="lead">هذه الصفحة مخصصة لاختبار تكامل إيصالات باستخدام محفظة الاختبار فقط. لا تُنشئ عملية على محفظة حقيقية.</p>
 <section class="card">
 <h2>1. فحص اتصال إيصالات</h2>
-<p class="muted">سنتحقق من بيانات الربط ومن توفر محفظة اختبار مفعّلة لحسابك.</p>
+<p class="muted">سنتحقق من صحة بيانات الدخول إلى إيصالات، ونستعرض محافظ التحصيل المرتبطة بحسابك.</p>
 <div class="row"><button id="check">فحص الاتصال الآن</button></div>
 <div id="wallet" class="status">لم يتم الفحص بعد.</div>
 </section>
 <section class="card">
-<h2>2. إنشاء عملية اختبار</h2>
-<p class="muted">المبلغ التجريبي من 1 إلى 1000 ريال يمني. لا نستخدم محفظة حقيقية في هذه الصفحة.</p>
-<label for="amount">مبلغ الاختبار (ريال يمني)</label><input id="amount" type="number" min="1" max="1000" step="1" value="100">
-<div class="row"><button id="create" disabled>إنشاء طلب اختبار</button></div>
-<div id="order" class="status">افحص الاتصال أولاً.</div>
-<div id="paybox" class="hidden">
-<div class="details" id="details"></div>
-<div class="row"><button id="pay" class="secondary">فتح صفحة الدفع</button></div>
-<label for="reference">مرجع عملية المحفظة (بعد الدفع)</label><input id="reference" autocomplete="off" placeholder="أدخل مرجع عملية الاختبار">
-<div class="row"><button id="submit">إرسال المرجع للتحقق</button><button id="refresh" class="secondary">تحديث الحالة</button></div>
-<div id="result" class="status">بانتظار إنشاء الطلب.</div>
-</div>
+<h2>2. تفاصيل نتيجة الفحص</h2>
+<p class="muted">هذه الصفحة تفحص الاتصال فقط ولا تنشئ أي طلب دفع أو تخصم أي مبلغ.</p>
+<div id="walletList" class="status">سيتم عرض بيانات المحافظ هنا بعد الفحص.</div>
+<div id="order" class="status">لم يتم إجراء الفحص بعد.</div>
 </section>
 <p class="muted">اعتماد العملية يتم من إيصالات عبر التحقق من مرجع الدفع وWebhook الموقّع. لا تعتبر الصفحة العملية ناجحة لمجرد فتح رابط الدفع.</p>
 <footer><a href="/rafidpay/dashboard">العودة إلى لوحة التاجر</a> · RafidPay</footer>
 </main>
 <script>
-const $=id=>document.getElementById(id);let current=null,available=false;
-async function api(url,options={}){const r=await fetch(url,{credentials:"same-origin",...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||d.error||("HTTP "+r.status));return d}
+const $=id=>document.getElementById(id);
+async function api(url){const r=await fetch(url,{credentials:"same-origin",cache:"no-store"});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||d.error||("HTTP "+r.status));return d}
 function show(el,msg,kind=""){el.textContent=msg;el.className="status "+kind}
-$("check").onclick=async()=>{const b=$("check");b.disabled=true;show($("wallet"),"جارٍ فحص الاتصال بمحفظة إيصالات التجريبية…");try{const d=await api("/api/rafidpay/test/wallet");available=d.available;$("create").disabled=!available;show($("wallet"),d.message+(d.wallet?"\nالمحفظة: "+d.wallet.name+"\nالحساب: "+(d.wallet.account_number||"—"):""),available?"good":"bad")}catch(e){available=false;$("create").disabled=true;show($("wallet"),e.message,"bad")}finally{b.disabled=false}};
-$("create").onclick=async()=>{const b=$("create"),amount=Number($("amount").value);if(!Number.isInteger(amount)||amount<1||amount>1000)return show($("order"),"أدخل مبلغًا صحيحًا بين 1 و1000 ريال.","bad");b.disabled=true;show($("order"),"جارٍ إنشاء طلب الاختبار…");$("paybox").classList.add("hidden");try{const d=await api("/api/rafidpay/test/create",{method:"POST",body:JSON.stringify({amount})});current=d.order;$("details").innerHTML="";for(const [k,v] of [["رقم الطلب",current.reference],["المبلغ",current.amount+" "+current.currency],["محفظة الاختبار",current.wallet.name],["رقم المحفظة",current.wallet.account_number||"—"]]){const x=document.createElement("div");x.className="detail";const s=document.createElement("small");s.textContent=k;const strong=document.createElement("b");strong.textContent=v;x.append(s,strong);$("details").append(x)}$("paybox").classList.remove("hidden");show($("order"),"تم إنشاء طلب اختبار لدى إيصالات. أكمل الدفع في صفحة إيصالات ثم أرسل المرجع للتحقق.","good");show($("result"),"حالة الطلب: "+current.status);$("pay").disabled=!current.pay_url;$("pay").onclick=()=>{if(current&&current.pay_url)window.open(current.pay_url,"_blank","noopener")}}catch(e){show($("order"),e.message,"bad")}finally{b.disabled=false}};
-$("submit").onclick=async()=>{if(!current)return;const reference=$("reference").value.trim();if(!reference)return show($("result"),"أدخل مرجع العملية أولاً.","bad");$("submit").disabled=true;try{const d=await api("/api/rafidpay/test/orders/"+current.reference+"/reference",{method:"POST",body:JSON.stringify({reference})});show($("result"),"رد إيصالات: "+d.status+"\nسيتم اعتماد العملية عند وصول تأكيد التحقق.","good");await refresh()}catch(e){show($("result"),e.message,"bad")}finally{$("submit").disabled=false}};
-async function refresh(){if(!current)return;try{const d=await api("/api/rafidpay/test/orders/"+current.reference);show($("result"),"حالة الطلب: "+d.order.status+"\nالمبلغ: "+d.order.amount+" "+d.order.currency+(d.order.paid_at?"\nوقت التأكيد: "+new Date(d.order.paid_at).toLocaleString("ar"):""),d.order.status==="paid"?"good":"") }catch(e){show($("result"),e.message,"bad")}}
-$("refresh").onclick=refresh;
+$("check").onclick=async()=>{const b=$("check");b.disabled=true;show($("wallet"),"جارٍ فحص بيانات الربط والاتصال بخوادم إيصالات…");show($("walletList"),"بانتظار نتيجة الفحص…");try{const d=await api("/api/rafidpay/test/wallet");show($("wallet"),"نجح الاتصال بإيصالات.\n"+d.message,"good");const lines=["عدد المحافظ: "+d.wallet_count];if(d.selected_wallet)lines.push("محفظة التحصيل المحددة: "+d.selected_wallet.name,"رقم الحساب: "+(d.selected_wallet.account_number||"غير معروض"),"العملة: "+d.selected_wallet.currency);else if(d.wallets?.length){lines.push("المحافظ المتاحة:");d.wallets.forEach((w,i)=>lines.push((i+1)+". "+w.name+" — "+(w.account_number||"بدون رقم حساب")+" — "+w.currency));lines.push("ملاحظة: رقم المحفظة المحدد في الإعدادات لا يطابق المحفظة المتاحة أو توجد عدة محافظ.");}else lines.push("لم يتم العثور على محافظ تحصيل في الحساب.");show($("walletList"),lines.join("\n"),d.wallet_count?"good":"");show($("order"),"فحص بيانات الاعتماد: ناجح\nالحصول على رمز الدخول: ناجح\nطلب قائمة المحافظ: ناجح","good");}catch(e){show($("wallet"),"فشل الفحص: "+e.message,"bad");show($("order"),"لم يكتمل الفحص. راجع حالة حساب التاجر وبيانات Client ID وClient Secret وصلاحيات API في إيصالات.","bad")}finally{b.disabled=false}};
 </script></body></html>
