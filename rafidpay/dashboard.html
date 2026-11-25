@@ -63,6 +63,47 @@ button{transition:filter .2s ease,transform .2s ease,opacity .2s ease}button:hov
 .planned-state{background:#302a20;color:#e6c58a;border:1px solid #665338}
 .muted-method{opacity:.8}.muted-method .payment-icon{background:#2b2b35;color:#c1c5d0}
 @media(max-width:650px){.payment-method-grid{grid-template-columns:1fr}.payment-method-card{padding:14px}}
+
+/* Refined mobile-first merchant dashboard */
+nav{padding:10px 0 18px;align-items:center}
+.navlinks{align-items:center;gap:8px}
+.navlinks a{display:inline-flex;align-items:center;min-height:40px;padding:7px 12px;border:1px solid transparent;border-radius:11px;white-space:nowrap}
+.navlinks a:hover{background:#14253a;border-color:#2b465d}
+.navlinks button{min-height:40px;padding:8px 15px}
+.hero{padding:24px 0 18px;gap:18px}
+.heroBox{border-radius:22px}
+.hero h1{letter-spacing:-.7px}
+.sectionhead{margin:28px 0 12px}
+.step,.panel{border-radius:18px}
+@media(max-width:760px){
+ .wrap{padding:12px 15px 34px}
+ nav{display:grid;grid-template-columns:1fr;gap:12px;padding-bottom:14px}
+ .brand{font-size:21px}
+ .navlinks{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;width:100%}
+ .navlinks a,.navlinks button{justify-content:center;text-align:center;white-space:normal;min-width:0;font-size:12px;padding:8px 7px;background:#111e31;border:1px solid #263b55;border-radius:12px}
+ .navlinks button{grid-column:1/-1}
+ .hero{padding:18px 0 12px;grid-template-columns:1fr;gap:14px}
+ .hero h1{font-size:clamp(30px,8vw,39px);line-height:1.24;margin:8px 0 10px}
+ .hero p{font-size:14px;line-height:1.85}
+ .heroBox{padding:17px}
+ .heroBox strong{font-size:17px}
+ .session-pill{font-size:12px;line-height:1.7;white-space:normal}
+ .sectionhead{margin:23px 0 10px}
+ .sectionhead h2{font-size:20px}
+ .steps{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .step{padding:13px}
+ .step h3{font-size:14px}
+ .step p{font-size:12px;line-height:1.7}
+ .grid{grid-template-columns:1fr;gap:2px}
+ .panel{padding:17px;margin-top:12px}
+ .panel h2{font-size:19px}
+ .payment-method-grid{grid-template-columns:1fr}
+}
+@media(max-width:390px){
+ .steps{grid-template-columns:1fr}
+ .navlinks{grid-template-columns:1fr 1fr}
+ .hero h1{font-size:30px}
+}
 </style>
 </head>
 <body><main class="wrap">
