@@ -217,7 +217,7 @@ async function handleApi(req,res,url){
   const client=await pool.connect();let localId;
   try{
    await client.query("BEGIN");const lock=await client.query("SELECT wallet_balance FROM users WHERE id=$1 FOR UPDATE",[user.id]);
-   if(Number(lock.rows[0]?.wallet_balance||0)<sale){await client.query("ROLLBACK");return json(res,402,{error:"INSUFFICIENT_WALLET",required:sale,balance:Number(lock.rows[0]?.wallet_balance||0)});}
+   if(Number(lock.rows[0]?.wallet_balance||0)<sale){const balance=Number(lock.rows[0]?.wallet_balance||0);await client.query("ROLLBACK");return json(res,402,{error:"INSUFFICIENT_WALLET",message:"رصيد محفظتك غير كافٍ لشراء هذا الرقم من السيرفر الثاني.",required:Number(sale.toFixed(4)),balance:Number(balance.toFixed(4)),shortfall:Number((sale-balance).toFixed(4))});}
    await client.query("UPDATE users SET wallet_balance=wallet_balance-$1 WHERE id=$2",[sale,user.id]);
    const ins=await client.query("INSERT INTO herosms_orders(user_id,service,country_code,country_name,provider_price,sale_price,status) VALUES($1,$2,$3,$4,$5,$6,'processing') RETURNING id",[user.id,service,country,"دولة رقم "+country,cost,sale]);localId=ins.rows[0].id;
    await client.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'debit',$2,$3,$4)",[user.id,sale,"حجز رقم من سيرفر رقم اثنين","herosms:"+localId]);
