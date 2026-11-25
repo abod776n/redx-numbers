@@ -105,7 +105,7 @@ async function route(req,res,u){
   const wallets=Array.isArray(data)?data:(data.results||data.data||data.wallets||[]);
   const configured=String(process.env.ESAALAT_WALLET_ACCOUNT_NUMBER||"").replace(/\\D/g,"");
   const selected=wallets.find(w=>String(w.account_number||"").replace(/\\D/g,"")===configured)||(wallets.length===1?wallets[0]:null);
-  return json(res,200,{connected:true,wallet_count:wallets.length,selected_wallet:selected?{id:selected.id,name:selected.name||selected.provider?.name||"محفظة إيصالات",account_number:selected.account_number||"",currency:selected.currency||"YER"}:null,wallets:wallets.map(w=>({name:w.name||w.provider?.name||"محفظة",account_number:w.account_number||"",currency:w.currency||"YER"})),configured_account:configured||null,message:wallets.length?"تم الاتصال بإيصالات بنجاح وتم جلب المحافظ.":"تم الاتصال بإيصالات، لكن الحساب لا يحتوي على محافظ تحصيل."});
+  return json(res,200,{connected:true,wallet_count:wallets.length,selected_wallet:selected?{id:selected.id,name:selected.name||selected.provider?.name||"محفظة إيصالات",account_number:selected.account_number||"",currency:selected.currency||"YER"}:null,wallets:wallets.map(w=>({id:w.id,name:w.name||w.provider?.name||"محفظة",account_number:w.account_number||"",currency:w.currency||"YER"})),configured_account:configured||null,message:wallets.length?"تم الاتصال بإيصالات بنجاح وتم جلب المحافظ.":"تم الاتصال بإيصالات، لكن الحساب لا يحتوي على محافظ تحصيل."});
  }
  if(u.pathname==="/api/rafidpay/test/create"&&req.method==="POST"){
   if(!user)return json(res,401,{error:"AUTH_REQUIRED"});
