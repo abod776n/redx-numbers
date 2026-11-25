@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#08111f"><title>RafidPay | صفحة اختبار إيصالات</title>
+<style>
+:root{color-scheme:dark;--bg:#08111f;--panel:#111e31;--line:#29405a;--text:#f4f8ff;--muted:#9fb0c7;--mint:#65e2c5;--blue:#8db6ff;--red:#ff9b9b}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at 80% 0,#164b53 0,transparent 38%),radial-gradient(ellipse at 0 80%,#202c59 0,transparent 40%),var(--bg);color:var(--text);font:16px/1.8 system-ui,sans-serif}
+main{width:min(760px,calc(100% - 28px));margin:34px auto}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.brand{font-weight:900;font-size:22px;direction:ltr}.brand span{color:var(--mint)}a{color:var(--mint);text-decoration:none}.tag{font-size:12px;border:1px solid #28675d;background:#10332f;color:#8bf1d9;border-radius:30px;padding:4px 12px}
+h1{font-size:clamp(28px,6vw,42px);line-height:1.25;margin:32px 0 8px}.lead{color:var(--muted);margin:0 0 22px}.card{background:linear-gradient(145deg,#15243a,#101a2b);border:1px solid var(--line);border-radius:20px;padding:22px;margin:16px 0;box-shadow:0 18px 55px #0003}
+label{display:block;font-weight:700;margin:12px 0 6px}input{width:100%;padding:14px;border:1px solid #38506c;border-radius:12px;background:#081525;color:white;font:inherit}button{border:0;border-radius:12px;padding:13px 18px;background:var(--mint);color:#06221e;font:inherit;font-weight:850;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.secondary{background:#1c2c43;color:white;border:1px solid var(--line)}.row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.row button{flex:1}.status{padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:#091626;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;margin-top:14px}.good{color:#8bf1d9;border-color:#28675d}.bad{color:var(--red);border-color:#6d343e}.muted{color:var(--muted);font-size:13px}.details{display:grid;grid-template-columns:1fr 1fr;gap:10px}.detail{padding:12px;border-radius:12px;background:#091626;border:1px solid var(--line);overflow-wrap:anywhere}.detail small{display:block;color:var(--muted)}.detail b{direction:ltr;display:block;text-align:right}.hidden{display:none!important}footer{text-align:center;color:var(--muted);font-size:12px;padding:20px}
+@media(max-width:520px){.card{padding:16px}.details{grid-template-columns:1fr}.row{display:grid}}
+</style></head>
+<body><main>
+<div class="top"><div class="brand">RAFID<span>PAY</span></div><span class="tag">TEST MODE · ESAALAT</span></div>
+<h1>صفحة اختبار الدفع</h1>
+<p class="lead">هذه الصفحة مخصصة لاختبار تكامل إيصالات باستخدام محفظة الاختبار فقط. لا تُنشئ عملية على محفظة حقيقية.</p>
+<section class="card">
+<h2>1. فحص اتصال إيصالات</h2>
+<p class="muted">سنتحقق من بيانات الربط ومن توفر محفظة اختبار مفعّلة لحسابك.</p>
+<div class="row"><button id="check">فحص الاتصال الآن</button></div>
+<div id="wallet" class="status">لم يتم الفحص بعد.</div>
+</section>
+<section class="card">
+<h2>2. إنشاء عملية اختبار</h2>
+<p class="muted">المبلغ التجريبي من 1 إلى 1000 ريال يمني. لا نستخدم محفظة حقيقية في هذه الصفحة.</p>
+<label for="amount">مبلغ الاختبار (ريال يمني)</label><input id="amount" type="number" min="1" max="1000" step="1" value="100">
+<div class="row"><button id="create" disabled>إنشاء طلب اختبار</button></div>
+<div id="order" class="status">افحص الاتصال أولاً.</div>
+<div id="paybox" class="hidden">
+<div class="details" id="details"></div>
+<div class="row"><button id="pay" class="secondary">فتح صفحة الدفع</button></div>
+<label for="reference">مرجع عملية المحفظة (بعد الدفع)</label><input id="reference" autocomplete="off" placeholder="أدخل مرجع عملية الاختبار">
+<div class="row"><button id="submit">إرسال المرجع للتحقق</button><button id="refresh" class="secondary">تحديث الحالة</button></div>
+<div id="result" class="status">بانتظار إنشاء الطلب.</div>
+</div>
+</section>
+<p class="muted">اعتماد العملية يتم من إيصالات عبر التحقق من مرجع الدفع وWebhook الموقّع. لا تعتبر الصفحة العملية ناجحة لمجرد فتح رابط الدفع.</p>
+<footer><a href="/rafidpay/dashboard">العودة إلى لوحة التاجر</a> · RafidPay</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);let current=null,available=false;
+async function api(url,options={}){const r=await fetch(url,{credentials:"same-origin",...options,headers:{"Content-Type":"application/json",...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.message||d.error||("HTTP "+r.status));return d}
+function show(el,msg,kind=""){el.textContent=msg;el.className="status "+kind}
+$("check").onclick=async()=>{const b=$("check");b.disabled=true;show($("wallet"),"جارٍ فحص الاتصال بمحفظة إيصالات التجريبية…");try{const d=await api("/api/rafidpay/test/wallet");available=d.available;$("create").disabled=!available;show($("wallet"),d.message+(d.wallet?"\nالمحفظة: "+d.wallet.name+"\nالحساب: "+(d.wallet.account_number||"—"):""),available?"good":"bad")}catch(e){available=false;$("create").disabled=true;show($("wallet"),e.message,"bad")}finally{b.disabled=false}};
+$("create").onclick=async()=>{const b=$("create"),amount=Number($("amount").value);if(!Number.isInteger(amount)||amount<1||amount>1000)return show($("order"),"أدخل مبلغًا صحيحًا بين 1 و1000 ريال.","bad");b.disabled=true;show($("order"),"جارٍ إنشاء طلب الاختبار…");$("paybox").classList.add("hidden");try{const d=await api("/api/rafidpay/test/create",{method:"POST",body:JSON.stringify({amount})});current=d.order;$("details").innerHTML="";for(const [k,v] of [["رقم الطلب",current.reference],["المبلغ",current.amount+" "+current.currency],["محفظة الاختبار",current.wallet.name],["رقم المحفظة",current.wallet.account_number||"—"]]){const x=document.createElement("div");x.className="detail";const s=document.createElement("small");s.textContent=k;const strong=document.createElement("b");strong.textContent=v;x.append(s,strong);$("details").append(x)}$("paybox").classList.remove("hidden");show($("order"),"تم إنشاء طلب اختبار لدى إيصالات. أكمل الدفع في صفحة إيصالات ثم أرسل المرجع للتحقق.","good");show($("result"),"حالة الطلب: "+current.status);$("pay").disabled=!current.pay_url;$("pay").onclick=()=>{if(current&&current.pay_url)window.open(current.pay_url,"_blank","noopener")}}catch(e){show($("order"),e.message,"bad")}finally{b.disabled=false}};
+$("submit").onclick=async()=>{if(!current)return;const reference=$("reference").value.trim();if(!reference)return show($("result"),"أدخل مرجع العملية أولاً.","bad");$("submit").disabled=true;try{const d=await api("/api/rafidpay/test/orders/"+current.reference+"/reference",{method:"POST",body:JSON.stringify({reference})});show($("result"),"رد إيصالات: "+d.status+"\nسيتم اعتماد العملية عند وصول تأكيد التحقق.","good");await refresh()}catch(e){show($("result"),e.message,"bad")}finally{$("submit").disabled=false}};
+async function refresh(){if(!current)return;try{const d=await api("/api/rafidpay/test/orders/"+current.reference);show($("result"),"حالة الطلب: "+d.order.status+"\nالمبلغ: "+d.order.amount+" "+d.order.currency+(d.order.paid_at?"\nوقت التأكيد: "+new Date(d.order.paid_at).toLocaleString("ar"):""),d.order.status==="paid"?"good":"") }catch(e){show($("result"),e.message,"bad")}}
+$("refresh").onclick=refresh;
+</script></body></html>
