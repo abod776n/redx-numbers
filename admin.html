@@ -66,10 +66,10 @@
   <a href="#reviews"><i>✓</i>مراجعة الحوالات</a>
   <a href="#customers-section"><i>♙</i>العملاء</a>
   <a href="#orders-section"><i>▤</i>الطلبات</a>
-  <a href="#transactions-section"><i>↕</i>سجل المحفظة</a>
-  <a href="#support-admin-section"><i>✉</i>تذاكر الدعم</a>
+  <a href="#transactions-section"><i></i>سجل المحفظة</a>
+  <a href="#support-admin-section"><i></i>تذاكر الدعم</a>
  </nav>
- <div class="side-bottom"><a href="/" target="_blank">↗ فتح المتجر</a><button class="logout" id="logout">تسجيل الخروج</button></div>
+ <div class="side-bottom"><a href="/" target="_blank"> فتح المتجر</a><button class="logout" id="logout">تسجيل الخروج</button></div>
 </aside>
 <main class="main">
  <header class="topbar"><div><h1>لوحة التحكم</h1><p>إدارة منصة طلباتي نمبر ومتابعة العمليات من مكان واحد.</p></div><div class="top-actions"><button class="btn" id="refresh-admin">↻ تحديث البيانات</button><div class="admin-chip"><span class="admin-avatar">♙</span>مدير النظام</div></div></header>
@@ -78,10 +78,10 @@
   <div class="stats">
    <div class="stat" style="--glow:#8c7cff"><div class="stat-top"><span>إجمالي العملاء</span><span class="stat-icon">♙</span></div><strong id="customers">—</strong><small>حسابات العملاء المسجلة</small></div>
    <div class="stat" style="--glow:#41cbd7"><div class="stat-top"><span>إجمالي الطلبات</span><span class="stat-icon">▤</span></div><strong id="orders-count">—</strong><small>طلبات الأرقام في المنصة</small></div>
-   <div class="stat" style="--glow:#3bd6a0"><div class="stat-top"><span>المبيعات المكتملة</span><span class="stat-icon">↗</span></div><strong id="sales">—</strong><small>إجمالي المبيعات بالدولار</small></div>
+   <div class="stat" style="--glow:#3bd6a0"><div class="stat-top"><span>المبيعات المكتملة</span><span class="stat-icon"></span></div><strong id="sales">—</strong><small>إجمالي المبيعات بالدولار</small></div>
    <div class="stat" style="--glow:#e8ad5d"><div class="stat-top"><span>رصيد المزوّد</span><span class="stat-icon">◉</span></div><strong id="provider">—</strong><small>الرصيد المتاح لدى مزود الأرقام</small></div>
    <div class="stat" style="--glow:#ff7185"><div class="stat-top"><span>طلبات تحتاج متابعة</span><span class="stat-icon">◷</span></div><strong id="pending-count">—</strong><small>طلبات قيد الانتظار أو المراجعة</small></div>
-   <div class="stat" style="--glow:#42d5d0"><div class="stat-top"><span>مبيعات اليوم</span><span class="stat-icon">☀</span></div><strong id="today-sales">—</strong><small>المبيعات المكتملة اليوم بالدولار</small></div>
+   <div class="stat" style="--glow:#42d5d0"><div class="stat-top"><span>مبيعات اليوم</span><span class="stat-icon"></span></div><strong id="today-sales">—</strong><small>المبيعات المكتملة اليوم بالدولار</small></div>
    <div class="stat" style="--glow:#a78bfa"><div class="stat-top"><span>أرصدة العملاء</span><span class="stat-icon">◈</span></div><strong id="wallet-total">—</strong><small>إجمالي أرصدة المحافظ بالدولار</small></div>
   </div></section>
  <section class="panel"><h2>هامش الربح</h2><p class="muted">حدد نسبة الزيادة على سعر المزود قبل عرض السعر على العملاء.</p><div class="row"><input id="markup" type="text" inputmode="decimal" autocomplete="off" value="10" aria-label="نسبة هامش الربح"><button class="btn" id="save-markup">حفظ النسبة %</button></div></section>
@@ -100,7 +100,7 @@
  <section id="orders-section" class="panel"><div class="section-title"><div><h2>كل طلبات الأرقام</h2><p>طلبات السيرفر الأول والثاني في قائمة موحدة</p></div></div><input id="order-search" class="search-input" type="search" placeholder="ابحث برقم الطلب أو الهاتف أو العميل..." autocomplete="off"><div class="filter-row"><button class="filter-chip active" data-order-filter="all">الكل</button><button class="filter-chip" data-order-filter="waiting">بانتظار الكود</button><button class="filter-chip" data-order-filter="done">مكتمل</button><button class="filter-chip" data-order-filter="refunded">مسترد</button><button class="filter-chip" data-order-filter="uncertain">قيد المراجعة</button></div><div id="orders" class="data-grid">—</div></section>
  <section id="transactions-section" class="panel"><div class="section-title"><div><h2>سجل حركة المحافظ</h2><p>آخر عمليات الشحن والخصم والاسترداد لكل العملاء</p></div></div><input id="transaction-search" class="search-input" type="search" placeholder="ابحث باسم العميل أو نوع العملية..." autocomplete="off"><div id="transactions" class="data-grid">جارٍ تحميل السجل...</div></section>
  <section id="support-admin-section" class="panel"><div class="section-title"><div><h2>تذاكر الدعم الفني</h2><p>استفسارات العملاء والرد عليها من لوحة الإدارة</p></div><button type="button" class="btn" id="refresh-support">تحديث التذاكر</button></div><div id="admin-support-tickets" class="data-grid">جارٍ تحميل التذاكر...</div></section>
- <div class="footer-note">طلباتي نمبر · لوحة الإدارة © 2026</div>
+ <div class="footer-note">طلباتي نمبر · لوحة الإدارة  2026</div>
 </main></div><script src="/admin.js"></script>
 <script>
 document.querySelectorAll('.side-nav a').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.side-nav a').forEach(x=>x.classList.remove('active'));a.classList.add('active')}));
