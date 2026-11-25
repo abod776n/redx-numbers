@@ -42,6 +42,9 @@ async function initDb(){
 
  CREATE TABLE IF NOT EXISTS herosms_orders(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),activation_id TEXT,service TEXT NOT NULL,country_code TEXT NOT NULL,country_name TEXT,phone_number TEXT,provider_price NUMERIC(14,4),sale_price NUMERIC(14,4),status TEXT NOT NULL,code TEXT,sms_text TEXT,expires_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
  CREATE INDEX IF NOT EXISTS herosms_orders_user_idx ON herosms_orders(user_id,created_at DESC);
+ CREATE TABLE IF NOT EXISTS api_keys(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,name TEXT NOT NULL,key_prefix TEXT NOT NULL,key_hash TEXT UNIQUE NOT NULL,last_used_at TIMESTAMPTZ,revoked_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+ CREATE INDEX IF NOT EXISTS api_keys_user_idx ON api_keys(user_id,created_at DESC);
+ CREATE TABLE IF NOT EXISTS api_idempotency(id BIGSERIAL PRIMARY KEY,api_key_id BIGINT NOT NULL REFERENCES api_keys(id) ON DELETE CASCADE,idempotency_key TEXT NOT NULL,order_id BIGINT REFERENCES number_orders(id),created_at TIMESTAMPTZ NOT NULL DEFAULT now(),UNIQUE(api_key_id,idempotency_key));
  CREATE TABLE IF NOT EXISTS payment_requests(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),method TEXT NOT NULL,currency TEXT NOT NULL CHECK(currency IN ('USD','YER')),amount_entered NUMERIC(14,2) NOT NULL,amount_usd NUMERIC(14,4) NOT NULL,amount_yer NUMERIC(16,2) NOT NULL,sender_name TEXT NOT NULL,reference TEXT NOT NULL,proof_data TEXT,status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),admin_note TEXT,reviewed_at TIMESTAMPTZ,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
  CREATE INDEX IF NOT EXISTS payment_requests_user_idx ON payment_requests(user_id,created_at DESC);
  CREATE TABLE IF NOT EXISTS binance_payments(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),merchant_trade_no TEXT UNIQUE NOT NULL,prepay_id TEXT,transaction_id TEXT UNIQUE,amount_usdt NUMERIC(14,8) NOT NULL,status TEXT NOT NULL DEFAULT 'PENDING' CHECK(status IN ('PENDING','PAID','CLOSED')),checkout_url TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT now(),paid_at TIMESTAMPTZ);
@@ -207,7 +210,98 @@ async function handleApi(req,res,url){
  if(req.method==="POST" && url.pathname==="/api/logout"){
   const c=parseCookies(req.headers.cookie);if(c.talabati_session)await pool.query("DELETE FROM sessions WHERE token_hash=$1",[hash(c.talabati_session)]);res.setHeader("Set-Cookie",cookie("talabati_session","",0));return json(res,200,{ok:true});
  }
+ const apiV1=url.pathname.startsWith("/api/v1/");
+ if(apiV1){
+  if(!rateLimit(req,"public-api",120))return json(res,429,{error:{code:"RATE_LIMITED",message:"Too many requests. Try again shortly."}});
+  const supplied=String(req.headers["x-api-key"]||"").trim()||String(req.headers.authorization||"").replace(/^Bearer\s+/i,"").trim();
+  if(!supplied)return json(res,401,{error:{code:"API_KEY_REQUIRED",message:"Send your key in X-API-Key or Authorization: Bearer."}});
+  const kq=await pool.query("SELECT k.id,k.user_id FROM api_keys k WHERE k.key_hash=$1 AND k.revoked_at IS NULL",[hash(supplied)]);
+  const apiKey=kq.rows[0];if(!apiKey)return json(res,401,{error:{code:"INVALID_API_KEY",message:"API key is invalid or revoked."}});
+  await pool.query("UPDATE api_keys SET last_used_at=now() WHERE id=$1",[apiKey.id]);
+  const userId=apiKey.user_id;
+  if(req.method==="GET"&&url.pathname==="/api/v1/balance"){
+   const q=await pool.query("SELECT wallet_balance FROM users WHERE id=$1",[userId]);
+   const held=await pool.query("SELECT COALESCE(sum(sale_price),0) reserved FROM number_orders WHERE user_id=$1 AND status IN ('processing','waiting','uncertain') AND wallet_charged=false",[userId]);
+   return json(res,200,{balance:Number(q.rows[0]?.wallet_balance||0),reserved:Number(held.rows[0]?.reserved||0),available:Number((Number(q.rows[0]?.wallet_balance||0)-Number(held.rows[0]?.reserved||0)).toFixed(4)),currency:"USD"});
+  }
+  if(req.method==="GET"&&url.pathname==="/api/v1/services")return json(res,200,{services:[{id:"wa",name:"WhatsApp",description:"WhatsApp activation numbers"},{id:"tg",name:"Telegram",description:"Telegram activation numbers"}]});
+  if(req.method==="GET"&&url.pathname==="/api/v1/countries"){
+   const service=String(url.searchParams.get("service")||"tg");if(!["wa","tg"].includes(service))return json(res,400,{error:{code:"BAD_SERVICE",message:"service must be wa or tg"}});
+   const r=await provider({action:"available_countries",service});if(r.data?.status!=="ok"||!r.data.countries)return json(res,502,{error:{code:"PROVIDER_ERROR",message:"Could not load available countries"}});
+   const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
+   const countries=Object.entries(r.data.countries).filter(([,v])=>Number(v.qty)>0).map(([code,v])=>({code,name:v.name_ar||v.name||code,available:Number(v.qty),price:Number((Number(v.price)*(1+markup/100)).toFixed(4)),currency:"USD"}));
+   return json(res,200,{service,countries});
+  }
+  if(req.method==="POST"&&url.pathname==="/api/v1/order"){
+   const b=await readBody(req),service=String(b.service||"tg"),country=String(b.country_code||""),idem=String(req.headers["idempotency-key"]||b.idempotency_key||"").trim();
+   if(!["wa","tg"].includes(service)||!/^\d{1,3}$/.test(country))return json(res,400,{error:{code:"BAD_REQUEST",message:"Provide service (wa/tg) and numeric country_code"}});
+   if(!idem||idem.length>120)return json(res,400,{error:{code:"IDEMPOTENCY_KEY_REQUIRED",message:"Send a unique Idempotency-Key header for each purchase."}});
+   const previous=await pool.query("SELECT o.id,o.phone_number,o.status,o.sale_price FROM api_idempotency i LEFT JOIN number_orders o ON o.id=i.order_id WHERE i.api_key_id=$1 AND i.idempotency_key=$2",[apiKey.id,idem]);
+   if(previous.rowCount){const o=previous.rows[0];return json(res,200,{order_id:o.id,number:o.phone_number,status:o.status,price:Number(o.sale_price),replayed:true});}
+   const offers=await provider({action:"available_countries",service});const entry=offers.data?.countries?.[country];
+   if(offers.data?.status!=="ok"||!entry||Number(entry.qty)<=0)return json(res,404,{error:{code:"COUNTRY_UNAVAILABLE",message:"No numbers available for this country"}});
+   const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
+   const cost=Number(entry.price),sale=Number((cost*(1+markup/100)).toFixed(4));if(!Number.isFinite(sale)||sale<=0)return json(res,502,{error:{code:"BAD_PROVIDER_PRICE",message:"Provider returned an invalid price"}});
+   const c=await pool.connect();let localId;
+   try{
+    await c.query("BEGIN");
+    const lock=await c.query("SELECT wallet_balance FROM users WHERE id=$1 FOR UPDATE",[userId]);
+    const held=await c.query("SELECT COALESCE(sum(sale_price),0) reserved FROM number_orders WHERE user_id=$1 AND status IN ('processing','waiting','uncertain') AND wallet_charged=false",[userId]);
+    const balance=Number(lock.rows[0]?.wallet_balance||0),reserved=Number(held.rows[0]?.reserved||0),available=Number((balance-reserved).toFixed(4));
+    if(available<sale){await c.query("ROLLBACK");return json(res,402,{error:{code:"INSUFFICIENT_BALANCE",message:"Insufficient available balance",balance,reserved,available,required:sale}});}
+    const ins=await c.query("INSERT INTO number_orders(user_id,service,country_code,country_name,provider_price,sale_price,status,wallet_charged) VALUES($1,$2,$3,$4,$5,$6,'processing',false) RETURNING id",[userId,service,country,entry.name_ar||entry.name||country,cost,sale]);localId=ins.rows[0].id;
+    await c.query("INSERT INTO api_idempotency(api_key_id,idempotency_key,order_id) VALUES($1,$2,$3)",[apiKey.id,idem,localId]);
+    await c.query("COMMIT");
+   }catch(e){await c.query("ROLLBACK");if(e.code==="23505"){const q=await pool.query("SELECT order_id FROM api_idempotency WHERE api_key_id=$1 AND idempotency_key=$2",[apiKey.id,idem]);return json(res,409,{error:{code:"DUPLICATE_REQUEST",message:"Idempotency key already used",order_id:q.rows[0]?.order_id}});}throw e;}finally{c.release();}
+   try{
+    const result=await provider({action:"getNumber",service,country_code:country,maxPrice:cost.toFixed(4)}),d=result.data||{};
+    if(d.status==="ok"&&d.order_id&&d.Number){
+     await pool.query("UPDATE number_orders SET provider_order_id=$1,phone_number=$2,status='waiting',expires_at=now()+interval '24 hours',updated_at=now() WHERE id=$3",[String(d.order_id),String(d.Number),localId]);
+     return json(res,201,{order_id:localId,number:d.Number,status:"waiting",price:sale,currency:"USD",guarantee_hours:24});
+    }
+    if(d.code==="UNCERTAIN"||result.httpStatus===202){await pool.query("UPDATE number_orders SET status='uncertain',updated_at=now() WHERE id=$1",[localId]);return json(res,202,{order_id:localId,status:"uncertain",message:"Provider result is pending review. Do not retry with a new idempotency key."});}
+    await pool.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND status='processing'",[localId]);
+    return json(res,502,{error:{code:"PROVIDER_REJECTED",message:d.message||"Provider could not issue a number"}});
+   }catch(e){await pool.query("UPDATE number_orders SET status='uncertain',updated_at=now() WHERE id=$1 AND status='processing'",[localId]);return json(res,202,{order_id:localId,status:"uncertain",message:"Provider result is uncertain. Check this order before retrying."});}
+  }
+  const statusMatch=url.pathname.match(/^\/api\/v1\/order\/(\d+)$/);
+  if(req.method==="GET"&&statusMatch){
+   const q=await pool.query("SELECT * FROM number_orders WHERE id=$1 AND user_id=$2",[statusMatch[1],userId]);const o=q.rows[0];if(!o)return json(res,404,{error:{code:"ORDER_NOT_FOUND",message:"Order not found"}});
+   if(o.status==="waiting"&&o.provider_order_id){
+    try{
+     const r=await provider({action:"getCode",order_id:o.provider_order_id}),d=r.data||{};
+     if(d.status==="ok"&&d.code){
+      const c=await pool.connect();try{await c.query("BEGIN");const latest=(await c.query("SELECT * FROM number_orders WHERE id=$1 FOR UPDATE",[o.id])).rows[0];
+       if(latest?.status==="waiting"&&!latest.wallet_charged){const w=(await c.query("SELECT wallet_balance FROM users WHERE id=$1 FOR UPDATE",[userId])).rows[0];if(Number(w?.wallet_balance||0)<Number(latest.sale_price)){await c.query("ROLLBACK");return json(res,409,{error:{code:"BALANCE_CHANGED",message:"Could not finalize payment; contact support"}});}await c.query("UPDATE users SET wallet_balance=wallet_balance-$1 WHERE id=$2",[latest.sale_price,userId]);await c.query("INSERT INTO wallet_transactions(user_id,kind,amount,description,reference) VALUES($1,'debit',$2,'خصم API بعد وصول رمز التفعيل',$3)",[userId,latest.sale_price,"api-order:"+o.id]);}
+       await c.query("UPDATE number_orders SET status='done',code=$1,passcode=$2,wallet_charged=true,updated_at=now() WHERE id=$3",[String(d.code),String(d.pass||""),o.id]);await c.query("COMMIT");
+      }catch(e){await c.query("ROLLBACK");throw e;}finally{c.release();}
+      return json(res,200,{order_id:o.id,status:"done",code:String(d.code),price:Number(o.sale_price),currency:"USD"});
+     }
+     if(["EXPIRED","REFUNDED"].includes(String(d.code||"").toUpperCase()))await pool.query("UPDATE number_orders SET status='refunded',updated_at=now() WHERE id=$1 AND status='waiting'",[o.id]);
+    }catch(e){console.error("Public API status check:",e.message);}
+   }
+   const latest=await pool.query("SELECT id,phone_number,status,code,sale_price,expires_at,created_at FROM number_orders WHERE id=$1 AND user_id=$2",[o.id,userId]);
+   const x=latest.rows[0];return json(res,200,{order_id:x.id,number:x.phone_number,status:x.status,code:x.code||null,price:Number(x.sale_price),currency:"USD",expires_at:x.expires_at});
+  }
+  return json(res,404,{error:{code:"ENDPOINT_NOT_FOUND",message:"Unknown API endpoint"}});
+ }
  const user=await auth(req);
+ if(req.method==="GET"&&url.pathname==="/api/developer/keys"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const q=await pool.query("SELECT id,name,key_prefix,last_used_at,created_at,revoked_at FROM api_keys WHERE user_id=$1 ORDER BY created_at DESC",[user.id]);return json(res,200,{keys:q.rows});
+ }
+ if(req.method==="POST"&&url.pathname==="/api/developer/keys"){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  if(!rateLimit(req,"create-api-key-"+user.id,5))return json(res,429,{error:"KEY_CREATE_LIMIT"});
+  const b=await readBody(req),name=String(b.name||"").trim().slice(0,60);if(name.length<2)return json(res,400,{error:"أدخل اسماً للمفتاح من حرفين على الأقل."});
+  const secret="tn_live_"+crypto.randomBytes(32).toString("hex"),prefix=secret.slice(0,16),q=await pool.query("INSERT INTO api_keys(user_id,name,key_prefix,key_hash) VALUES($1,$2,$3,$4) RETURNING id,name,key_prefix,created_at",[user.id,name,prefix,hash(secret)]);
+  return json(res,201,{key:secret,record:q.rows[0],warning:"انسخ المفتاح الآن؛ لن يظهر كاملاً مرة أخرى."});
+ }
+ const keyRevoke=url.pathname.match(/^\/api\/developer\/keys\/(\d+)\/revoke$/);
+ if(req.method==="POST"&&keyRevoke){
+  if(!user)return json(res,401,{error:"UNAUTHORIZED"});
+  const q=await pool.query("UPDATE api_keys SET revoked_at=now() WHERE id=$1 AND user_id=$2 AND revoked_at IS NULL RETURNING id",[keyRevoke[1],user.id]);return q.rowCount?json(res,200,{revoked:true}):json(res,404,{error:"KEY_NOT_FOUND"});
+ }
  if(req.method==="GET" && url.pathname==="/api/me")return user?json(res,200,{user:safeUser(user)}):json(res,401,{error:"UNAUTHORIZED"});
  if(req.method==="POST"&&url.pathname==="/api/sessions/revoke-others"){
   if(!user)return json(res,401,{error:"UNAUTHORIZED"});
