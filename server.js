@@ -389,6 +389,7 @@ async function handleApi(req,res,url){
   const q=await pool.query("SELECT value FROM settings WHERE key='payment_methods'");
   let methods={};try{methods=JSON.parse(q.rows[0]?.value||"{}");}catch{}
   if(!methods.jeeb)methods.jeeb="محفظة جيب\nرقم المحفظة: 776531367\nاسم المستفيد: عبدالملك عارف محمد احمد\nحوّل المبلغ ثم أدخل رقم العملية في طلب الشحن.";
+  if(!methods.shamcash)methods.shamcash="شام كاش\\nعنوان المحفظة: b36c357a7b5e28762ac58e43307b596e\\nحوّل المبلغ إلى العنوان أعلاه، ثم أدخل اسم المحوّل ورقم العملية وأرفق صورة الإيصال. تتم مراجعة الحوالة يدوياً قبل إضافة الرصيد.";
   return json(res,200,{exchange_rate:560,methods});
  }
  if(req.method==="POST"&&url.pathname==="/api/payment-requests"){
@@ -396,7 +397,7 @@ async function handleApi(req,res,url){
   if(!rateLimit(req,"payment-request",5))return json(res,429,{error:"RATE_LIMITED"});
   const b=await readBody(req);const method=String(b.method||"");const currency=String(b.currency||"USD");
   const amount=Number(b.amount);const sender=String(b.sender_name||"").trim().slice(0,120);const reference=String(b.reference||"").trim().slice(0,120);
-  const allowed=["fulusak","jeeb","onecash","cash","binance"];
+  const allowed=["fulusak","jeeb","onecash","cash","binance","shamcash"];
   if(!allowed.includes(method)||!["USD","YER"].includes(currency)||!Number.isFinite(amount)||amount<=0||amount>100000000||!sender||!reference)return json(res,400,{error:"أكمل بيانات التحويل والمبلغ ورقم العملية."});
   const amountUsd=Number((currency==="USD"?amount:amount/560).toFixed(4));const amountYer=Number((currency==="YER"?amount:amount*560).toFixed(2));
   if(amountUsd<1)return json(res,400,{error:"الحد الأدنى لطلب الشحن دولار واحد."});
