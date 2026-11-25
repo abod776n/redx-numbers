@@ -54,3 +54,112 @@
 .country-sort>span{margin-left:auto}
 .country-sort-btn{border:1px solid #34435e;border-radius:9px;padding:7px 9px;background:#101c30;color:#aebbd0;font:inherit;font-size:8px;cursor:pointer}
 .country-sort-btn.active{border-color:#8b7cff;background:#8b7cff20;color:#e6e0ff}
+
+
+/* Dashboard typography and mobile layout repair */
+.dashboard-page{font-size:14px;line-height:1.7;text-rendering:optimizeLegibility;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.dashboard-page :where(h1,h2,h3,p,small,strong,b,label,button,input,textarea,select){font-family:'Alexandria',sans-serif}
+.dashboard-page .dash-shell{width:100%;max-width:1160px}
+.dashboard-page .dash-welcome h1{font-size:clamp(23px,3vw,34px);line-height:1.45;letter-spacing:0;margin:9px 0}
+.dashboard-page .dash-welcome p{font-size:12px;line-height:1.9;margin:0;max-width:620px}
+.dashboard-page .eyebrow{font-size:10px;line-height:1.6}
+.dashboard-page .panel-heading h2{font-size:clamp(17px,2vw,21px);line-height:1.5;margin:7px 0 4px}
+.dashboard-page .panel-heading p,.dashboard-page .list-heading p{font-size:11px;line-height:1.8}
+.dashboard-page .dash-stat>span{font-size:11px}
+.dashboard-page .dash-stat>strong{font-size:23px;line-height:1.35}
+.dashboard-page .dash-stat>small{font-size:10px;line-height:1.6}
+.dashboard-page .dash-list-content{font-size:12px;line-height:1.9}
+.dashboard-page .dash-list-content .order{font-size:12px;line-height:1.9;overflow-wrap:anywhere}
+.dashboard-page .dash-list-content .order b{font-size:13px}
+.dashboard-page .dash-list-content .order p{font-size:12px;margin:6px 0}
+.dashboard-page .action{font-size:10px;padding:8px 11px;border:0;border-radius:9px;color:#fff;cursor:pointer}
+.dashboard-page .customer-insights-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:15px;margin:18px 0}
+.dashboard-page .customer-insight-card{min-width:0;padding:20px;border:1px solid #ffffff14;border-radius:18px;background:linear-gradient(145deg,#171d32,#101525);display:flex;flex-direction:column;gap:12px}
+.dashboard-page .customer-insight-card>span{font-size:11px;color:#bcb0ff}
+.dashboard-page .customer-insight-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.dashboard-page .customer-insight-values>div{min-width:0;display:flex;flex-direction:column;gap:3px}
+.dashboard-page .customer-insight-values b{font-size:21px;line-height:1.35;overflow-wrap:anywhere}
+.dashboard-page .customer-insight-values small,.dashboard-page .customer-insight-card>small{font-size:10px;color:#9ba5bd;line-height:1.7}
+.dashboard-page .customer-insight-card>strong{font-size:19px;line-height:1.5}
+.dashboard-page .notification-panel{margin-top:16px}
+.dashboard-page .support-ticket-list{display:grid;gap:9px;margin-top:14px}
+.dashboard-page .support-ticket{min-width:0;padding:12px 13px;border:1px solid #ffffff12;border-radius:12px;background:#0c1323;display:flex;flex-direction:column;gap:5px;font-size:11px;line-height:1.8;overflow-wrap:anywhere}
+.dashboard-page .support-ticket span{font-size:12px;color:#e8ebf7}
+.dashboard-page .support-ticket small{font-size:10px;color:#9ba5bd;line-height:1.7}
+.dashboard-page .customer-extra-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-top:16px;align-items:start}
+.dashboard-page .customer-extra-grid .purchase-panel{margin-top:0;min-width:0}
+.dashboard-page .referral-code-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:15px 0}
+.dashboard-page .referral-code-row strong{font-size:15px;letter-spacing:1px;color:#e5deff}
+.dashboard-page .referral-code-row button,.dashboard-page .binance-receiver button{font-family:inherit;font-size:10px;padding:9px 12px;border:1px solid #8b7cff66;border-radius:9px;background:#8b7cff20;color:#e5deff}
+.dashboard-page .referral-count{display:flex;align-items:center;gap:8px;font-size:11px}
+.dashboard-page .referral-count b{font-size:20px}
+.dashboard-page .referral-disclaimer{display:block;margin-top:8px;color:#9ba5bd;font-size:10px;line-height:1.8}
+.dashboard-page .support-form{display:grid;gap:8px;margin-top:14px}
+.dashboard-page .support-form label{font-size:11px;color:#c7cce0;margin-top:5px}
+.dashboard-page .support-form input,.dashboard-page .support-form textarea{width:100%;min-width:0;border:1px solid #34415e;border-radius:11px;background:#0b1020;color:#fff;padding:12px;font:inherit;font-size:12px;line-height:1.7;outline:none}
+.dashboard-page .support-form input{min-height:45px}
+.dashboard-page .support-form textarea{min-height:92px;resize:vertical}
+.dashboard-page .support-form input:focus,.dashboard-page .support-form textarea:focus{border-color:#9b7bff;box-shadow:0 0 0 3px #9b7bff20}
+.dashboard-page .support-form .dash-buy{font-size:12px;margin-top:5px}
+.dashboard-page .wallet-note{font-size:10px;line-height:1.9}
+.dashboard-page .wallet-recharge-copy b{font-size:14px}
+.dashboard-page .wallet-recharge-copy small{font-size:10px}
+.dashboard-page .customer-page-nav{display:flex;gap:8px;margin:12px 0}
+.dashboard-page .customer-page-tab,.dashboard-page .customer-back-btn{font-family:inherit;font-size:11px;padding:10px 14px;border:1px solid #ffffff20;border-radius:10px;background:#111a2c;color:#cbd3e6}
+.dashboard-page .customer-page-tab.active{border-color:#8b7cff;background:#8b7cff20;color:#fff}
+.dashboard-page .dash-buy{font-size:12px;line-height:1.6}
+.dashboard-page .field-box label,.dashboard-page .country-label{font-size:11px}
+.dashboard-page .country-picker-head p{font-size:10px;line-height:1.7}
+.dashboard-page .country-trigger-copy b{font-size:12px}
+.dashboard-page .country-trigger-copy small{font-size:10px}
+.dashboard-page .price-strip{font-size:11px}
+.dashboard-page .hero-vpn-note{font-size:11px;line-height:1.9}
+@media(max-width:760px){
+ .dashboard-page .dash-shell{padding:0 14px}
+ .dashboard-page .dash-main{padding-top:20px}
+ .dashboard-page .dash-topbar{height:64px}
+ .dashboard-page .dash-topbar .brand{font-size:15px}
+ .dashboard-page .dash-topbar .brand-icon{width:36px;height:36px}
+ .dashboard-page .dash-top-actions{gap:8px}
+ .dashboard-page .dash-logout{font-size:10px;padding:9px 11px}
+ .dashboard-page .dash-welcome{padding:21px 2px 18px;gap:10px}
+ .dashboard-page .dash-welcome h1{font-size:23px;line-height:1.5}
+ .dashboard-page .dash-welcome p{font-size:10px;max-width:270px}
+ .dashboard-page .welcome-mark{width:58px;height:58px;border-radius:17px;font-size:25px;flex:none}
+ .dashboard-page .dash-stats{gap:9px}
+ .dashboard-page .dash-stat{min-height:112px;padding:13px;border-radius:15px}
+ .dashboard-page .dash-stat:first-child{min-height:118px}
+ .dashboard-page .stat-icon{width:30px;height:30px;margin-bottom:8px;font-size:17px}
+ .dashboard-page .dash-stat>strong{font-size:20px}
+ .dashboard-page .dash-stat .identity-value{font-size:11px}
+ .dashboard-page .dash-stat:nth-child(3)>strong{font-size:12px}
+ .dashboard-page .purchase-panel{padding:17px 14px;border-radius:18px}
+ .dashboard-page .panel-heading{gap:10px}
+ .dashboard-page .panel-heading h2{font-size:17px;line-height:1.5}
+ .dashboard-page .panel-heading p{font-size:10px}
+ .dashboard-page .purchase-symbol{width:40px;height:40px;flex:none;font-size:20px}
+ .dashboard-page .dash-lower{gap:11px}
+ .dashboard-page .dash-list-panel{padding:16px;border-radius:16px}
+ .dashboard-page .list-heading h2{font-size:14px}
+ .dashboard-page .customer-insights-grid{grid-template-columns:1fr;gap:10px;margin:12px 0}
+ .dashboard-page .customer-insight-card{padding:15px;border-radius:15px;gap:9px}
+ .dashboard-page .customer-insight-values b{font-size:18px}
+ .dashboard-page .customer-extra-grid{grid-template-columns:1fr;gap:11px;margin-top:12px}
+ .dashboard-page .support-ticket{padding:10px;font-size:11px}
+ .dashboard-page .support-ticket span{font-size:11px}
+ .dashboard-page .support-ticket small{font-size:9px}
+ .dashboard-page .support-form input,.dashboard-page .support-form textarea{font-size:12px}
+ .dashboard-page .referral-code-row strong{font-size:14px}
+ .dashboard-page .customer-page-tab{flex:1;padding:10px 8px;font-size:10px}
+ .dashboard-page .service-choice{margin-top:16px}
+ .dashboard-page .country-picker-wrap{margin-top:15px}
+ .dashboard-page .dash-footer{gap:8px;flex-direction:column}
+}
+@media(max-width:380px){
+ .dashboard-page .dash-shell{padding:0 10px}
+ .dashboard-page .dash-welcome h1{font-size:20px}
+ .dashboard-page .dash-stat{padding:11px}
+ .dashboard-page .customer-insight-values{gap:6px}
+ .dashboard-page .customer-insight-values b{font-size:16px}
+ .dashboard-page .customer-insight-values small{font-size:9px}
+}
