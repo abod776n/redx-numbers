@@ -53,7 +53,7 @@ async function route(req,res,u){
   if(payload?.event!=="payment.verified"||payload?.status!=="VERIFIED"){await pool.query("UPDATE rp_webhook_events SET processing_status='ignored' WHERE id=$1",[ins.rows[0].id]);return json(res,200,{received:true,processed:false,reason:"EVENT_NOT_PAYABLE"});}
   const orderId=String(payload.order_id||"").trim(),amount=String(payload.amount||payload.base_amount||"").trim(),currency=String(payload.currency||"").toUpperCase(),intentId=String(payload.intent_id||"").trim(),paymentId=String(payload.payment_id||"").trim();
   if(!orderId||!intentId||!/^\d+(?:\.\d{1,2})?$/.test(amount)||currency!=="YER"){await pool.query("UPDATE rp_webhook_events SET processing_status='failed' WHERE id=$1",[ins.rows[0].id]);return json(res,400,{received:true,error:"INVALID_PAYMENT_EVENT"});}
-  const client=await pool.connect();try{await client.query("BEGIN");const q=await client.query("SELECT id,amount,currency,status FROM rp_transactions WHERE reference=$1 AND payment_mode='live' FOR UPDATE",[orderId]);
+  const client=await pool.connect();try{await client.query("BEGIN");const q=await client.query("SELECT id,amount,currency,status FROM rp_transactions WHERE reference=$1 AND payment_mode IN ('live','sandbox') FOR UPDATE",[orderId]);
    if(!q.rowCount){await client.query("UPDATE rp_webhook_events SET processing_status='ignored' WHERE id=$1",[ins.rows[0].id]);await client.query("COMMIT");return json(res,200,{received:true,processed:false,reason:"ORDER_NOT_FOUND"});}
    const tx=q.rows[0],expected=Number(tx.amount),received=Number(amount);
    if(tx.currency!=="YER"||!Number.isFinite(received)||Math.round(expected*100)!==Math.round(received*100)){await client.query("UPDATE rp_webhook_events SET processing_status='failed' WHERE id=$1",[ins.rows[0].id]);await client.query("COMMIT");return json(res,200,{received:true,processed:false,reason:"AMOUNT_OR_CURRENCY_MISMATCH"});}
@@ -114,7 +114,7 @@ async function route(req,res,u){
   const wallets=Array.isArray(data)?data:(data.results||data.data||[]),wallet=wallets.find(x=>x.is_test===true);
   if(!wallet)return json(res,503,{error:"TEST_WALLET_UNAVAILABLE",message:"لا توجد محفظة اختبار مفعّلة في حساب إيصالات."});
   const ref="RPT_"+crypto.randomBytes(16).toString("hex").toUpperCase();
-  const tx=await pool.query("INSERT INTO rp_transactions(merchant_id,payment_link_id,reference,amount,currency,status,payment_mode,customer_name,customer_email) VALUES($1,NULL,$2,$3,'YER','pending','live',$4,$5) RETURNING reference,amount,currency,status",[m.rows[0].id,ref,amount,String(b.customer_name||"اختبار").trim().slice(0,120),String(b.customer_email||"").trim().slice(0,160)]);
+  const tx=await pool.query("INSERT INTO rp_transactions(merchant_id,payment_link_id,reference,amount,currency,status,payment_mode,customer_name,customer_email) VALUES($1,NULL,$2,$3,'YER','pending','sandbox',$4,$5) RETURNING reference,amount,currency,status",[m.rows[0].id,ref,amount,String(b.customer_name||"اختبار").trim().slice(0,120),String(b.customer_email||"").trim().slice(0,160)]);
   try{
    const intent=await esaalat("/intents/",{method:"POST",headers:{Authorization:"Bearer "+token,"ESAALAT-IDEMPOTENCY-KEY":crypto.randomUUID()},body:JSON.stringify({wallet:wallet.id,amount:String(amount),currency:"YER",external_order_id:ref,notes:"RafidPay test checkout"})});
    const intentId=String(intent.id||intent.intent_id||"");if(!intentId)throw Error("ESAALAT_INTENT_ID_MISSING");
@@ -126,7 +126,7 @@ async function route(req,res,u){
  if(testReference&&req.method==="POST"){
   if(!user)return json(res,401,{error:"AUTH_REQUIRED"});
   const b=await read(req),reference=String(b.reference||"").replace(/\s+/g,"").slice(0,128);if(!reference)return json(res,400,{error:"REFERENCE_REQUIRED"});
-  const q=await pool.query("SELECT t.id,t.esaalat_intent_id,t.status FROM rp_transactions t JOIN rp_merchants m ON m.id=t.merchant_id WHERE t.reference=$1 AND t.payment_mode='live' AND m.user_id=$2",[testReference[1],user.id]);
+  const q=await pool.query("SELECT t.id,t.esaalat_intent_id,t.status FROM rp_transactions t JOIN rp_merchants m ON m.id=t.merchant_id WHERE t.reference=$1 AND t.payment_mode='sandbox' AND m.user_id=$2",[testReference[1],user.id]);
   if(!q.rowCount||!q.rows[0].esaalat_intent_id)return json(res,404,{error:"ORDER_NOT_FOUND"});
   if(q.rows[0].status!=="pending")return json(res,409,{error:"ORDER_NOT_PENDING"});
   const token=await esaalatToken(),result=await esaalat("/intents/"+encodeURIComponent(q.rows[0].esaalat_intent_id)+"/",{method:"PATCH",headers:{Authorization:"Bearer "+token},body:JSON.stringify({reference})});
