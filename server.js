@@ -470,7 +470,7 @@ async function handleApi(req,res,url){
   const q=await pool.query("SELECT value FROM settings WHERE key='payment_methods'");
   let methods={};try{methods=JSON.parse(q.rows[0]?.value||"{}");}catch{}
   if(!methods.jeeb)methods.jeeb="محفظة جيب\nرقم المحفظة: 776531367\nاسم المستفيد: عبدالملك عارف محمد احمد\nحوّل المبلغ ثم أدخل رقم العملية في طلب الشحن.";
-  if(!methods.shamcash)methods.shamcash="شام كاش\\nعنوان المحفظة: b36c357a7b5e28762ac58e43307b596e\\nحوّل المبلغ إلى العنوان أعلاه، ثم أدخل اسم المحوّل ورقم العملية وأرفق صورة الإيصال. تتم مراجعة الحوالة يدوياً قبل إضافة الرصيد.";
+  if(!methods.shamcash)methods.shamcash="شام كاش\nعنوان المحفظة: b36c357a7b5e28762ac58e43307b596e\nحوّل المبلغ إلى العنوان أعلاه، ثم أدخل اسم المحوّل ورقم العملية وأرفق صورة الإيصال. تتم مراجعة الحوالة يدوياً قبل إضافة الرصيد.";
   return json(res,200,{exchange_rate:560,methods});
  }
  if(req.method==="POST"&&url.pathname==="/api/payment-requests"){
