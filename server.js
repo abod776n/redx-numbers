@@ -191,9 +191,9 @@ function rateLimit(req,key,limit=15){
 async function handleApi(req,res,url){
  if(!pool) return json(res,503,{error:"DATABASE_NOT_CONFIGURED"});
  if(req.method==="POST" && url.pathname==="/api/register"){
-  if(!rateLimit(req,"register",5))return json(res,429,{error:"RATE_LIMITED"});
   const b=await readBody(req);const email=String(b.email||"").trim().toLowerCase();const phone=String(b.phone||"").trim();const password=String(b.password||"");
   if((!email&&!phone)||password.length<10||password.length>200)return json(res,400,{error:"أدخل البريد أو الهاتف وكلمة مرور لا تقل عن 10 أحرف."});
+  if(!rateLimit(req,"register",10))return json(res,429,{error:"RATE_LIMITED",message:"تم تجاوز عدد محاولات التسجيل مؤقتاً. انتظر دقيقة ثم حاول مجدداً."});
   const passwordHash=await new Promise((resolve,reject)=>crypto.scrypt(password,process.env.SESSION_SECRET||"talabati",64,(e,k)=>e?reject(e):resolve(k.toString("hex"))));
   try{const referral=String(b.referral_code||"").trim().toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,16);const ref=referral?await pool.query("SELECT id FROM users WHERE referral_code=$1",[referral]):{rows:[]};const ownCode=crypto.randomBytes(5).toString("hex").toUpperCase();const q=await pool.query("INSERT INTO users(email,phone,password_hash,referral_code,referred_by) VALUES($1,$2,$3,$4,$5) RETURNING *",[email||null,phone||null,passwordHash,ownCode,ref.rows[0]?.id||null]);const t=token();await pool.query("INSERT INTO sessions(user_id,token_hash,expires_at) VALUES($1,$2,now()+interval '30 days')",[q.rows[0].id,hash(t)]);res.setHeader("Set-Cookie",cookie("talabati_session",t,2592000));return json(res,201,{user:safeUser(q.rows[0]),referred:!!ref.rows[0]});}
   catch(e){if(e.code==="23505")return json(res,409,{error:"البريد الإلكتروني أو رقم الهاتف مستخدم مسبقاً."});throw e;}
