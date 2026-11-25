@@ -13,7 +13,7 @@
     });
     let data = {};
     try { data = await response.json(); } catch {}
-    if (!response.ok) throw new Error(data.message || data.error || "تعذر تنفيذ الطلب");
+    if (!response.ok) { const message = data.status === 402 && data.required != null ? "رصيد محفظتك غير كافٍ. رصيدك الحالي: $" + Number(data.balance || 0).toFixed(2) + "، وسعر الرقم: $" + Number(data.required).toFixed(2) + "، ينقصك: $" + Number(data.shortfall || 0).toFixed(2) + "." : (data.message || data.error || "تعذر تنفيذ الطلب"); throw new Error(message); }
     return data;
   }
 
