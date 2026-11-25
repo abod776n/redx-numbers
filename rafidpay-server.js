@@ -112,25 +112,27 @@ async function route(req,res,u){
   const m=await pool.query("SELECT id,status FROM rp_merchants WHERE user_id=$1",[user.id]);
   if(!m.rowCount)return json(res,404,{error:"MERCHANT_NOT_FOUND"});
   if(m.rows[0].status!=="active")return json(res,403,{error:"MERCHANT_NOT_ACTIVE"});
-  const b=await read(req),amount=Number(b.amount);
+  const body=await read(req),amount=Number(body.amount),walletId=String(body.wallet_id||"").trim();
   if(!Number.isSafeInteger(amount)||amount<1||amount>1000)return json(res,400,{error:"TEST_AMOUNT_MUST_BE_1_TO_1000_YER"});
-  const token=await esaalatToken(),data=await esaalat("/wallets/?include_test=1",{headers:{Authorization:"Bearer "+token}});
-  const wallets=Array.isArray(data)?data:(data.results||data.data||[]),wallet=wallets.find(x=>x.is_test===true);
-  if(!wallet)return json(res,503,{error:"TEST_WALLET_UNAVAILABLE",message:"لا توجد محفظة اختبار مفعّلة في حساب إيصالات."});
+  if(!walletId)return json(res,400,{error:"WALLET_REQUIRED"});
+  const token=await esaalatToken(),data=await esaalat("/wallets/",{headers:{Authorization:"Bearer "+token}});
+  const wallets=Array.isArray(data)?data:(data.results||data.data||data.wallets||[]);
+  const wallet=wallets.find(w=>String(w.id)===walletId);
+  if(!wallet)return json(res,400,{error:"INVALID_WALLET",message:"المحفظة المختارة غير موجودة ضمن محافظ إيصالات المتاحة."});
   const ref="RPT_"+crypto.randomBytes(16).toString("hex").toUpperCase();
-  const tx=await pool.query("INSERT INTO rp_transactions(merchant_id,payment_link_id,reference,amount,currency,status,payment_mode,customer_name,customer_email) VALUES($1,NULL,$2,$3,'YER','pending','sandbox',$4,$5) RETURNING reference,amount,currency,status",[m.rows[0].id,ref,amount,String(b.customer_name||"اختبار").trim().slice(0,120),String(b.customer_email||"").trim().slice(0,160)]);
+  const tx=await pool.query("INSERT INTO rp_transactions(merchant_id,payment_link_id,reference,amount,currency,status,payment_mode,customer_name,customer_email) VALUES($1,NULL,$2,$3,'YER','pending','live',$4,$5) RETURNING reference,amount,currency,status",[m.rows[0].id,ref,amount,String(body.customer_name||"اختبار").trim().slice(0,120),String(body.customer_email||"").trim().slice(0,160)]);
   try{
-   const intent=await esaalat("/intents/",{method:"POST",headers:{Authorization:"Bearer "+token,"ESAALAT-IDEMPOTENCY-KEY":crypto.randomUUID()},body:JSON.stringify({wallet:wallet.id,amount:String(amount),currency:"YER",external_order_id:ref,notes:"RafidPay test checkout"})});
+   const intent=await esaalat("/intents/",{method:"POST",headers:{Authorization:"Bearer "+token,"ESAALAT-IDEMPOTENCY-KEY":crypto.randomUUID()},body:JSON.stringify({wallet:wallet.id,amount:String(amount),currency:"YER",external_order_id:ref,notes:"RafidPay live payment integration test"})});
    const intentId=String(intent.id||intent.intent_id||"");if(!intentId)throw Error("ESAALAT_INTENT_ID_MISSING");
    await pool.query("UPDATE rp_transactions SET esaalat_intent_id=$1 WHERE reference=$2",[intentId,ref]);
-   return json(res,201,{order:{...tx.rows[0],intent_id:intentId,pay_url:intent.pay_url||intent.checkout_url||null,wallet:{name:wallet.name||"محفظة الاختبار",account_number:wallet.account_number||""}},notice:"اختبار باستخدام محفظة إيصالات التجريبية فقط."});
+   return json(res,201,{order:{...tx.rows[0],intent_id:intentId,pay_url:intent.pay_url||intent.checkout_url||null,wallet:{id:wallet.id,name:wallet.name||wallet.provider?.name||"محفظة إيصالات",account_number:wallet.account_number||""}},notice:"تم إنشاء طلب دفع لدى إيصالات. لن يتم التحصيل إلا إذا أكمل الدافع عملية الدفع."});
   }catch(e){await pool.query("UPDATE rp_transactions SET status='failed' WHERE reference=$1",[ref]);throw e;}
  }
  const testReference=u.pathname.match(/^\/api\/rafidpay\/test\/orders\/(RPT_[A-F0-9]{32})\/reference$/);
  if(testReference&&req.method==="POST"){
   if(!user)return json(res,401,{error:"AUTH_REQUIRED"});
   const b=await read(req),reference=String(b.reference||"").replace(/\s+/g,"").slice(0,128);if(!reference)return json(res,400,{error:"REFERENCE_REQUIRED"});
-  const q=await pool.query("SELECT t.id,t.esaalat_intent_id,t.status FROM rp_transactions t JOIN rp_merchants m ON m.id=t.merchant_id WHERE t.reference=$1 AND t.payment_mode='sandbox' AND m.user_id=$2",[testReference[1],user.id]);
+  const q=await pool.query("SELECT t.id,t.esaalat_intent_id,t.status FROM rp_transactions t JOIN rp_merchants m ON m.id=t.merchant_id WHERE t.reference=$1 AND t.payment_mode='live' AND m.user_id=$2",[testReference[1],user.id]);
   if(!q.rowCount||!q.rows[0].esaalat_intent_id)return json(res,404,{error:"ORDER_NOT_FOUND"});
   if(q.rows[0].status!=="pending")return json(res,409,{error:"ORDER_NOT_PENDING"});
   const token=await esaalatToken(),result=await esaalat("/intents/"+encodeURIComponent(q.rows[0].esaalat_intent_id)+"/",{method:"PATCH",headers:{Authorization:"Bearer "+token},body:JSON.stringify({reference})});
