@@ -48,8 +48,8 @@ async function initDb(){
  CREATE INDEX IF NOT EXISTS binance_payments_user_idx ON binance_payments(user_id,created_at DESC);
  CREATE TABLE IF NOT EXISTS binance_manual_claims(id BIGSERIAL PRIMARY KEY,user_id BIGINT NOT NULL REFERENCES users(id),transaction_id TEXT UNIQUE NOT NULL,amount_usdt NUMERIC(14,8) NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
  CREATE INDEX IF NOT EXISTS binance_manual_claims_user_idx ON binance_manual_claims(user_id,created_at DESC);
- INSERT INTO settings(key,value) VALUES ('payment_methods', '{"fulusak":"","jeeb":"","onecash":"","cash":"","binance":""}') ON CONFLICT(key) DO NOTHING;
  CREATE TABLE IF NOT EXISTS settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
+ INSERT INTO settings(key,value) VALUES ('payment_methods', '{"fulusak":"","jeeb":"","onecash":"","cash":"","binance":"","shamcash":""}') ON CONFLICT(key) DO NOTHING;
  INSERT INTO settings(key,value) VALUES ('markup_percent','10') ON CONFLICT(key) DO NOTHING;
  `);
 }
