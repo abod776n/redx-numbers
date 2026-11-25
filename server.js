@@ -143,6 +143,28 @@ async function heroRequest(method, endpoint, body){
   return {status:r.status,data};
  }finally{clearTimeout(timer);}
 }
+let heroCountryCache={at:0,byId:new Map()};
+async function heroCountryDictionary(){
+ if(Date.now()-heroCountryCache.at<6*60*60*1000&&heroCountryCache.byId.size)return heroCountryCache.byId;
+ try{
+  const r=await fetch("https://partners-api.hero-sms.com/api/v1/dictionaries/countries",{headers:{Accept:"application/json"}});
+  if(!r.ok)throw new Error("COUNTRY_DICTIONARY_HTTP_"+r.status);
+  const data=await r.json();
+  const rows=Array.isArray(data)?data:(data.data||data.countries||[]);
+  const byId=new Map();
+  const display=new Intl.DisplayNames(["ar"],{type:"region"});
+  for(const item of rows){
+   const id=String(item.id??item.code??item.country??"");
+   if(!id)continue;
+   const iso=String(item.iso2??item.iso??item.alpha2??"").toUpperCase();
+   let name=item.name_ar||item.nameAr||item.title_ar||item.name||item.title||item.countryName||item.eng||item.en||"";
+   if(iso.length===2){try{name=display.of(iso)||name;}catch{}}
+   byId.set(id,{name:String(name||("الدولة "+id)),iso});
+  }
+  if(byId.size)heroCountryCache={at:Date.now(),byId};
+ }catch(e){console.warn("HeroSMS country dictionary:",e.message);}
+ return heroCountryCache.byId;
+}
 function heroBasePrice(item){
  const p=item?.prices||{};
  // The offers endpoint can expose a default quote below the currently accepted
@@ -234,7 +256,11 @@ async function handleApi(req,res,url){
   const setting=await pool.query("SELECT value FROM settings WHERE key='markup_percent'");
   const markup=Math.min(400,Math.max(0,Number(setting.rows[0]?.value??10)));
   const rows=result.data?.data?.[service]||{};
-  const offers=Object.entries(rows).map(([country,item])=>{const base=heroBasePrice(item);const count=Number(item?.counts?.total??0);return {country_code:String(country),country_name:"دولة رقم "+country,price:Number((base*(1+markup/100)).toFixed(4)),provider_price:base,qty:count,available:count>0};}).filter(x=>x.price>0).sort((a,b)=>a.price-b.price);
+  const countryMap=await heroCountryDictionary();
+  const offers=Object.entries(rows).map(([country,item])=>{
+   const base=heroBasePrice(item),count=Number(item?.counts?.total??0),meta=countryMap.get(String(country))||{};
+   return {country_code:String(country),country_name:meta.name||item?.country_name||item?.name||("الدولة "+country),iso:meta.iso||item?.iso||item?.iso2||"",price:Number((base*(1+markup/100)).toFixed(4)),provider_price:base,qty:count,available:count>0};
+  }).filter(x=>x.price>0&&x.qty>0).sort((a,b)=>a.price-b.price);
   return json(res,200,{provider:"herosms",service,offers});
  }
  if(req.method==="GET" && url.pathname==="/api/herosms/orders"){
